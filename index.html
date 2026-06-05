@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Sistema de Salud</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f;
+  --bg2: #13131a;
+  --bg3: #1c1c26;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #f0eff5;
+  --text2: #9896a8;
+  --text3: #5a5870;
+  --accent-sleep: #7c6ee6;
+  --accent-food: #3cb87a;
+  --accent-sport: #e6a43c;
+  --accent-energy: #e65c6e;
+  --accent-sleep-dim: rgba(124,110,230,0.15);
+  --accent-food-dim: rgba(60,184,122,0.15);
+  --accent-sport-dim: rgba(230,164,60,0.15);
+  --accent-energy-dim: rgba(230,92,110,0.15);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --font: 'DM Sans', sans-serif;
+  --mono: 'DM Mono', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+/* ── Header ── */
+.header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(10,10,15,0.92);
+  backdrop-filter: blur(16px);
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.header-title { font-size: 16px; font-weight: 600; letter-spacing: -0.02em; }
+.header-date { font-size: 12px; color: var(--text3); font-family: var(--mono); margin-top: 2px; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text3); flex-shrink: 0; }
+.status-dot.online { background: var(--accent-food); box-shadow: 0 0 6px var(--accent-food); }
+.status-dot.pending { background: var(--accent-sport); box-shadow: 0 0 6px var(--accent-sport); }
+
+/* ── Main ── */
+.main { padding: 16px 16px 120px; max-width: 480px; margin: 0 auto; }
+
+/* ── Section card ── */
+.section {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.section-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  user-select: none;
+}
+.section-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.icon-sleep  { background: var(--accent-sleep-dim);  color: var(--accent-sleep); }
+.icon-food   { background: var(--accent-food-dim);   color: var(--accent-food); }
+.icon-sport  { background: var(--accent-sport-dim);  color: var(--accent-sport); }
+.icon-energy { background: var(--accent-energy-dim); color: var(--accent-energy); }
+
+.section-label { font-size: 14px; font-weight: 500; flex: 1; }
+.section-chevron { color: var(--text3); font-size: 12px; transition: transform 0.2s; }
+.section-chevron.open { transform: rotate(180deg); }
+.section-body { padding: 0 16px 16px; display: none; }
+.section-body.open { display: block; }
+
+/* ── Field ── */
+.field { margin-bottom: 14px; }
+.field:last-child { margin-bottom: 0; }
+.field-label {
+  font-size: 11px; font-weight: 500; color: var(--text3);
+  letter-spacing: 0.06em; text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.row-3 { display: grid; grid-template-columns: 1fr 1fr 80px; gap: 8px; }
+
+/* ── Input ── */
+input[type="text"], input[type="number"], input[type="time"], textarea {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color 0.15s;
+  -webkit-appearance: none;
+}
+input[type="number"] { font-family: var(--mono); }
+input:focus, textarea:focus { border-color: var(--border2); }
+input::placeholder, textarea::placeholder { color: var(--text3); }
+textarea { resize: none; min-height: 72px; line-height: 1.5; }
+
+/* ── Score buttons (1–5) ── */
+.score-row { display: grid; grid-template-columns: repeat(5,1fr); gap: 6px; }
+.score-btn {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text2);
+  font-size: 14px; font-weight: 500;
+  padding: 10px 0; text-align: center;
+  cursor: pointer; transition: all 0.15s;
+  -webkit-appearance: none;
+}
+.score-btn:active { opacity: 0.7; }
+.score-btn.active {
+  border-color: currentColor;
+  font-weight: 600;
+}
+.score-btn.active.sleep-color  { color: var(--accent-sleep);  background: var(--accent-sleep-dim); }
+.score-btn.active.food-color   { color: var(--accent-food);   background: var(--accent-food-dim); }
+.score-btn.active.energy-color { color: var(--accent-energy); background: var(--accent-energy-dim); }
+
+/* ── Chips ── */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text2);
+  font-size: 13px; padding: 6px 12px;
+  cursor: pointer; transition: all 0.15s;
+  -webkit-appearance: none; white-space: nowrap;
+}
+.chip:active { opacity: 0.7; }
+.chip.active {
+  border-color: currentColor;
+  font-weight: 500;
+}
+.chip.active.sleep-color  { color: var(--accent-sleep);  background: var(--accent-sleep-dim); }
+.chip.active.food-color   { color: var(--accent-food);   background: var(--accent-food-dim); }
+.chip.active.sport-color  { color: var(--accent-sport);  background: var(--accent-sport-dim); }
+.chip.active.energy-color { color: var(--accent-energy); background: var(--accent-energy-dim); }
+
+/* ── Duration buttons ── */
+.dur-row { display: grid; grid-template-columns: repeat(5,1fr); gap: 6px; }
+.dur-btn {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text2);
+  font-size: 12px; font-weight: 500;
+  padding: 9px 0; text-align: center;
+  cursor: pointer; transition: all 0.15s;
+  font-family: var(--mono);
+}
+.dur-btn.active { color: var(--accent-sport); background: var(--accent-sport-dim); border-color: var(--accent-sport); }
+
+/* ── Toggle ── */
+.toggle-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.toggle-wrap { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+.toggle-wrap input { opacity: 0; width: 100%; height: 100%; position: absolute; cursor: pointer; z-index: 1; }
+.toggle-track {
+  position: absolute; inset: 0;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 11px; transition: all 0.2s;
+}
+.toggle-thumb {
+  position: absolute; top: 3px; left: 3px;
+  width: 14px; height: 14px;
+  background: var(--text3); border-radius: 50%;
+  transition: all 0.2s;
+}
+.toggle-wrap input:checked ~ .toggle-track { border-color: var(--accent-food); background: rgba(60,184,122,0.25); }
+.toggle-wrap input:checked ~ .toggle-thumb { transform: translateX(18px); background: var(--accent-food); }
+.toggle-wrap input:checked ~ .toggle-track.sport { border-color: var(--accent-sport); background: rgba(230,164,60,0.25); }
+.toggle-wrap input:checked ~ .toggle-thumb.sport { background: var(--accent-sport); }
+.toggle-wrap input:checked ~ .toggle-track.alcohol { border-color: var(--accent-energy); background: rgba(230,92,110,0.25); }
+.toggle-wrap input:checked ~ .toggle-thumb.alcohol { background: var(--accent-energy); }
+.toggle-label { font-size: 14px; font-weight: 500; }
+.toggle-sub { font-size: 11px; color: var(--text3); }
+
+/* ── Collapsible ── */
+.collapsible { display: none; }
+.collapsible.open { display: block; }
+
+/* ── Meal card ── */
+.meal-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  margin-bottom: 8px;
+}
+.meal-card:last-of-type { margin-bottom: 0; }
+.meal-title {
+  font-size: 12px; font-weight: 500; color: var(--text3);
+  letter-spacing: 0.04em; text-transform: uppercase;
+  margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+}
+.meal-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-food); }
+.meal-dot.lunch { background: var(--accent-sport); }
+.meal-dot.dinner { background: var(--accent-sleep); }
+
+/* ── Divider ── */
+.divider { height: 1px; background: var(--border); margin: 14px 0; }
+
+/* ── Crossrope section ── */
+.optional-label {
+  font-size: 11px; font-weight: 500; color: var(--text3);
+  letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 10px 0 8px;
+  display: flex; align-items: center; gap: 8px;
+}
+.optional-label::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* ── Bottom bar ── */
+.bottom-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(10,10,15,0.95);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border);
+  padding: 12px 16px 28px;
+  display: flex; gap: 10px;
+}
+.btn-sync {
+  flex: 1;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text2); font-family: var(--font);
+  font-size: 13px; font-weight: 500;
+  padding: 12px; cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-sync:active { opacity: 0.7; }
+.btn-save {
+  flex: 2;
+  background: var(--accent-food);
+  border: none; border-radius: var(--radius-sm);
+  color: #0a1a0f; font-family: var(--font);
+  font-size: 14px; font-weight: 600;
+  padding: 12px; cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-save:active { opacity: 0.7; }
+.btn-save:disabled { background: var(--bg3); color: var(--text3); cursor: default; }
+
+/* ── Toast ── */
+.toast {
+  position: fixed; top: 80px; left: 50%; transform: translateX(-50%) translateY(-20px);
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--radius-sm); padding: 10px 20px;
+  font-size: 13px; color: var(--text);
+  opacity: 0; transition: all 0.3s;
+  pointer-events: none; z-index: 200; white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.ok   { border-color: var(--accent-food); color: var(--accent-food); }
+.toast.err  { border-color: var(--accent-energy); color: var(--accent-energy); }
+
+/* ── Pending badge ── */
+.pending-badge {
+  font-size: 10px; font-family: var(--mono);
+  background: var(--accent-sport-dim); color: var(--accent-sport);
+  border-radius: 4px; padding: 2px 6px;
+}
+</style>
+</head>
+<body>
+
+<!-- WORKER URL — único lugar donde se referencia, sin token -->
+<script>const WORKER = "https://salud-proxy.roagiral.workers.dev";</script>
+
+<header class="header">
+  <div>
+    <div class="header-title">Sistema de Salud</div>
+    <div class="header-date" id="header-date">—</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span id="pending-badge" class="pending-badge" style="display:none"></span>
+    <div class="status-dot" id="status-dot"></div>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- ── SUEÑO ── -->
+  <div class="section" id="sec-sleep">
+    <div class="section-header" onclick="toggleSection('sleep')">
+      <div class="section-icon icon-sleep">🌙</div>
+      <span class="section-label">Sueño</span>
+      <span class="section-chevron" id="chev-sleep">▼</span>
+    </div>
+    <div class="section-body open" id="body-sleep">
+      <div class="row-3" style="margin-bottom:14px">
+        <div class="field">
+          <div class="field-label">Dormí</div>
+          <input type="time" id="sueno_hora_inicio">
+        </div>
+        <div class="field">
+          <div class="field-label">Desperté</div>
+          <input type="time" id="sueno_hora_fin">
+        </div>
+        <div class="field">
+          <div class="field-label">Horas</div>
+          <input type="text" id="sueno_duracion" readonly style="text-align:center;color:var(--text2)">
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-label">Calidad</div>
+        <div class="score-row" id="sueno_calidad">
+          <button class="score-btn sleep-color" onclick="setScore('sueno_calidad',1)">1</button>
+          <button class="score-btn sleep-color" onclick="setScore('sueno_calidad',2)">2</button>
+          <button class="score-btn sleep-color" onclick="setScore('sueno_calidad',3)">3</button>
+          <button class="score-btn sleep-color" onclick="setScore('sueno_calidad',4)">4</button>
+          <button class="score-btn sleep-color" onclick="setScore('sueno_calidad',5)">5</button>
+        </div>
+      </div>
+      <div class="field" style="margin-top:14px">
+        <div class="field-label">Descripción</div>
+        <div class="chips" id="sueno_descripcion">
+          <button class="chip sleep-color" onclick="setSingle('sueno_descripcion',this)">Profundo y reparador</button>
+          <button class="chip sleep-color" onclick="setSingle('sueno_descripcion',this)">Superficial y ligero</button>
+          <button class="chip sleep-color" onclick="setSingle('sueno_descripcion',this)">Interrumpido varias veces</button>
+          <button class="chip sleep-color" onclick="setSingle('sueno_descripcion',this)">Insomnio</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ALIMENTACIÓN ── -->
+  <div class="section" id="sec-food">
+    <div class="section-header" onclick="toggleSection('food')">
+      <div class="section-icon icon-food">🥗</div>
+      <span class="section-label">Alimentación</span>
+      <span class="section-chevron" id="chev-food">▼</span>
+    </div>
+    <div class="section-body open" id="body-food">
+
+      <div class="field">
+        <div class="field-label">Calidad del día</div>
+        <div class="chips" id="alimentacion_calidad">
+          <button class="chip food-color" onclick="setSingle('alimentacion_calidad',this)">Bastante saludable</button>
+          <button class="chip food-color" onclick="setSingle('alimentacion_calidad',this)">Regular</button>
+          <button class="chip food-color" onclick="setSingle('alimentacion_calidad',this)">Poco saludable</button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Desayuno -->
+      <div class="meal-card">
+        <div class="meal-title"><span class="meal-dot"></span>Desayuno</div>
+        <div class="row-2" style="margin-bottom:8px">
+          <div class="field">
+            <div class="field-label">Proteína</div>
+            <input type="text" id="desayuno_proteina" placeholder="Huevos, carne…">
+          </div>
+          <div class="field">
+            <div class="field-label">Gramos</div>
+            <input type="number" id="desayuno_proteina_g" placeholder="0" inputmode="decimal">
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label">Carbohidratos</div>
+          <div class="chips" id="desayuno_carbs">
+            <button class="chip food-color" onclick="toggleChip('desayuno_carbs',this)">Arepa sin gluten</button>
+            <button class="chip food-color" onclick="toggleChip('desayuno_carbs',this)">Arepa</button>
+            <button class="chip food-color" onclick="toggleChip('desayuno_carbs',this)">Fruta</button>
+            <button class="chip food-color" onclick="toggleChip('desayuno_carbs',this)">Avena</button>
+            <button class="chip food-color" onclick="toggleChip('desayuno_carbs',this)">Aguacate</button>
+            <button class="chip food-color" onclick="toggleChip('desayuno_carbs',this)">Otro</button>
+          </div>
+        </div>
+        <div class="field" style="margin-top:8px">
+          <div class="field-label">Extras</div>
+          <input type="text" id="desayuno_extras" placeholder="Café, jugo, suplemento…">
+        </div>
+      </div>
+
+      <!-- Almuerzo -->
+      <div class="meal-card">
+        <div class="meal-title"><span class="meal-dot lunch"></span>Almuerzo</div>
+        <div class="row-2" style="margin-bottom:8px">
+          <div class="field">
+            <div class="field-label">Proteína</div>
+            <input type="text" id="almuerzo_proteina" placeholder="Pollo, res, pescado…">
+          </div>
+          <div class="field">
+            <div class="field-label">Gramos</div>
+            <input type="number" id="almuerzo_proteina_g" placeholder="0" inputmode="decimal">
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label">Base / carbohidrato</div>
+          <div class="chips" id="almuerzo_base">
+            <button class="chip food-color" onclick="toggleChip('almuerzo_base',this)">Arroz</button>
+            <button class="chip food-color" onclick="toggleChip('almuerzo_base',this)">Ensalada</button>
+            <button class="chip food-color" onclick="toggleChip('almuerzo_base',this)">Sopa</button>
+            <button class="chip food-color" onclick="toggleChip('almuerzo_base',this)">Sin carb</button>
+            <button class="chip food-color" onclick="toggleChip('almuerzo_base',this)">Otro</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cena -->
+      <div class="meal-card">
+        <div class="meal-title"><span class="meal-dot dinner"></span>Cena</div>
+        <div class="row-2" style="margin-bottom:8px">
+          <div class="field">
+            <div class="field-label">Proteína</div>
+            <input type="text" id="cena_proteina" placeholder="Pollo, huevo duro…">
+          </div>
+          <div class="field">
+            <div class="field-label">Gramos</div>
+            <input type="number" id="cena_proteina_g" placeholder="0" inputmode="decimal">
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label">Acompañantes</div>
+          <div class="chips" id="cena_acompanantes">
+            <button class="chip food-color" onclick="toggleChip('cena_acompanantes',this)">Arepa sin gluten</button>
+            <button class="chip food-color" onclick="toggleChip('cena_acompanantes',this)">Arepa</button>
+            <button class="chip food-color" onclick="toggleChip('cena_acompanantes',this)">Aguacate</button>
+            <button class="chip food-color" onclick="toggleChip('cena_acompanantes',this)">Ensalada</button>
+            <button class="chip food-color" onclick="toggleChip('cena_acompanantes',this)">Sopa</button>
+            <button class="chip food-color" onclick="toggleChip('cena_acompanantes',this)">Otro</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Alcohol -->
+      <div class="toggle-row">
+        <div class="toggle-wrap">
+          <input type="checkbox" id="alcohol" onchange="toggleAlcohol(this.checked)">
+          <div class="toggle-track alcohol"></div>
+          <div class="toggle-thumb alcohol"></div>
+        </div>
+        <div>
+          <div class="toggle-label">Alcohol</div>
+          <div class="toggle-sub">Registrar tipo y unidades</div>
+        </div>
+      </div>
+      <div class="collapsible" id="alcohol-detail">
+        <div class="row-2">
+          <div class="field">
+            <div class="field-label">Tipo</div>
+            <div class="chips" id="alcohol_tipo">
+              <button class="chip energy-color" onclick="toggleChip('alcohol_tipo',this)">Cerveza</button>
+              <button class="chip energy-color" onclick="toggleChip('alcohol_tipo',this)">Vino</button>
+              <button class="chip energy-color" onclick="toggleChip('alcohol_tipo',this)">Aguardiente</button>
+              <button class="chip energy-color" onclick="toggleChip('alcohol_tipo',this)">Gin tonic</button>
+              <button class="chip energy-color" onclick="toggleChip('alcohol_tipo',this)">Whisky</button>
+              <button class="chip energy-color" onclick="toggleChip('alcohol_tipo',this)">Otro</button>
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-label">Unidades</div>
+            <input type="number" id="alcohol_unidades" placeholder="0" inputmode="numeric">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ACTIVIDAD FÍSICA ── -->
+  <div class="section" id="sec-sport">
+    <div class="section-header" onclick="toggleSection('sport')">
+      <div class="section-icon icon-sport">⚡</div>
+      <span class="section-label">Actividad física</span>
+      <span class="section-chevron" id="chev-sport">▼</span>
+    </div>
+    <div class="section-body open" id="body-sport">
+
+      <div class="toggle-row">
+        <div class="toggle-wrap">
+          <input type="checkbox" id="hice_ejercicio" onchange="toggleEjercicio(this.checked)">
+          <div class="toggle-track sport"></div>
+          <div class="toggle-thumb sport"></div>
+        </div>
+        <div class="toggle-label">Hice ejercicio hoy</div>
+      </div>
+
+      <div class="collapsible" id="ejercicio-detail">
+        <div class="field">
+          <div class="field-label">Tipo</div>
+          <div class="chips" id="actividad_tipo">
+            <button class="chip sport-color" onclick="toggleChip('actividad_tipo',this)">Cardio + HIIT</button>
+            <button class="chip sport-color" onclick="toggleChip('actividad_tipo',this)">Fuerza</button>
+            <button class="chip sport-color" onclick="toggleChip('actividad_tipo',this)">Natación</button>
+            <button class="chip sport-color" onclick="toggleChip('actividad_tipo',this)">Caminata</button>
+            <button class="chip sport-color" onclick="toggleChip('actividad_tipo',this)">Otro</button>
+          </div>
+        </div>
+        <div class="field" style="margin-top:14px">
+          <div class="field-label">Duración</div>
+          <div class="dur-row" id="actividad_duracion_btns">
+            <button class="dur-btn" onclick="setDuracion(20)">20'</button>
+            <button class="dur-btn" onclick="setDuracion(30)">30'</button>
+            <button class="dur-btn" onclick="setDuracion(40)">40'</button>
+            <button class="dur-btn" onclick="setDuracion(50)">50'</button>
+            <button class="dur-btn" onclick="setDuracion(60)">60+'</button>
+          </div>
+          <input type="number" id="actividad_duracion" placeholder="minutos" inputmode="numeric" style="margin-top:6px">
+        </div>
+        <div class="field">
+          <div class="field-label">Sensación</div>
+          <div class="chips" id="actividad_sensacion">
+            <button class="chip sport-color" onclick="setSingle('actividad_sensacion',this)">Excelente</button>
+            <button class="chip sport-color" onclick="setSingle('actividad_sensacion',this)">Bien</button>
+            <button class="chip sport-color" onclick="setSingle('actividad_sensacion',this)">Regular / cansado</button>
+            <button class="chip sport-color" onclick="setSingle('actividad_sensacion',this)">Muy difícil</button>
+          </div>
+        </div>
+
+        <!-- Crossrope (opcional) -->
+        <div class="optional-label">Crossrope / cuerda</div>
+        <div class="row-2">
+          <div class="field">
+            <div class="field-label">Saltos totales</div>
+            <input type="number" id="crossrope_saltos" placeholder="0" inputmode="numeric">
+          </div>
+          <div class="field">
+            <div class="field-label">% objetivo</div>
+            <input type="number" id="crossrope_objetivo" placeholder="0" inputmode="decimal">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ENERGÍA Y SÍNTOMAS ── -->
+  <div class="section" id="sec-energy">
+    <div class="section-header" onclick="toggleSection('energy')">
+      <div class="section-icon icon-energy">🔋</div>
+      <span class="section-label">Energía y síntomas</span>
+      <span class="section-chevron" id="chev-energy">▼</span>
+    </div>
+    <div class="section-body open" id="body-energy">
+
+      <div class="field">
+        <div class="field-label">Nivel de energía</div>
+        <div class="score-row" id="energia_nivel">
+          <button class="score-btn energy-color" onclick="setScore('energia_nivel',1)">1</button>
+          <button class="score-btn energy-color" onclick="setScore('energia_nivel',2)">2</button>
+          <button class="score-btn energy-color" onclick="setScore('energia_nivel',3)">3</button>
+          <button class="score-btn energy-color" onclick="setScore('energia_nivel',4)">4</button>
+          <button class="score-btn energy-color" onclick="setScore('energia_nivel',5)">5</button>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:14px">
+        <div class="field-label">Ánimo</div>
+        <div class="chips" id="animo">
+          <button class="chip energy-color" onclick="setSingle('animo',this)">Muy bien</button>
+          <button class="chip energy-color" onclick="setSingle('animo',this)">Bien</button>
+          <button class="chip energy-color" onclick="setSingle('animo',this)">Neutral</button>
+          <button class="chip energy-color" onclick="setSingle('animo',this)">Mal</button>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:14px">
+        <div class="field-label">Síntomas</div>
+        <div class="chips" id="sintomas">
+          <button class="chip energy-color" onclick="toggleChip('sintomas',this)">Ninguno</button>
+          <button class="chip energy-color" onclick="toggleChip('sintomas',this)">Fatiga</button>
+          <button class="chip energy-color" onclick="toggleChip('sintomas',this)">Dolor de cabeza</button>
+          <button class="chip energy-color" onclick="toggleChip('sintomas',this)">Ansiedad</button>
+          <button class="chip energy-color" onclick="toggleChip('sintomas',this)">Dolor muscular</button>
+          <button class="chip energy-color" onclick="toggleChip('sintomas',this)">Náuseas</button>
+          <button class="chip energy-color" onclick="toggleChip('sintomas',this)">Otro</button>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:14px">
+        <div class="field-label">Notas libres</div>
+        <textarea id="notas_libres" placeholder="Contexto del día, eventos especiales, cómo te sentiste…"></textarea>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Bottom bar -->
+<div class="bottom-bar">
+  <button class="btn-sync" onclick="testConnection()">Probar</button>
+  <button class="btn-sync" onclick="syncPending()">Sincronizar</button>
+  <button class="btn-save" id="btn-save" onclick="guardar()">Guardar registro</button>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Estado global (sin re-render) ──────────────────────────────────────────
+const STATE = {
+  sueno_calidad: null,
+  sueno_descripcion: null,
+  alimentacion_calidad: null,
+  desayuno_carbs: [],
+  almuerzo_base: [],
+  cena_acompanantes: [],
+  alcohol: false,
+  alcohol_tipo: [],
+  actividad_tipo: [],
+  actividad_duracion: null,
+  actividad_sensacion: null,
+  energia_nivel: null,
+  animo: null,
+  sintomas: [],
+};
+
+// ── Init ───────────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  setHeaderDate();
+  checkConnection();
+  updatePendingBadge();
+});
+
+function setHeaderDate() {
+  const now = new Date();
+  const dias = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  document.getElementById('header-date').textContent =
+    `${dias[now.getDay()]} ${now.getDate()} ${meses[now.getMonth()]} · ${now.getFullYear()}`;
+}
+
+// ── Toggle sections ────────────────────────────────────────────────────────
+function toggleSection(id) {
+  const body = document.getElementById('body-' + id);
+  const chev = document.getElementById('chev-' + id);
+  body.classList.toggle('open');
+  chev.classList.toggle('open');
+}
+
+// ── Score buttons ──────────────────────────────────────────────────────────
+function setScore(group, val) {
+  STATE[group] = val;
+  const btns = document.querySelectorAll(`#${group} .score-btn`);
+  btns.forEach((b, i) => b.classList.toggle('active', i + 1 === val));
+}
+
+// ── Single-select chips ────────────────────────────────────────────────────
+function setSingle(group, el) {
+  STATE[group] = el.textContent.trim();
+  const chips = document.querySelectorAll(`#${group} .chip`);
+  chips.forEach(c => c.classList.toggle('active', c === el));
+}
+
+// ── Multi-select chips ─────────────────────────────────────────────────────
+function toggleChip(group, el) {
+  const val = el.textContent.trim();
+  el.classList.toggle('active');
+  if (el.classList.contains('active')) {
+    if (!STATE[group].includes(val)) STATE[group].push(val);
+  } else {
+    STATE[group] = STATE[group].filter(v => v !== val);
+  }
+}
+
+// ── Duration buttons ───────────────────────────────────────────────────────
+function setDuracion(min) {
+  STATE.actividad_duracion = min;
+  document.getElementById('actividad_duracion').value = min;
+  document.querySelectorAll('.dur-btn').forEach(b =>
+    b.classList.toggle('active', parseInt(b.textContent) === min || (min === 60 && b.textContent === "60+"))
+  );
+}
+
+// ── Toggles ────────────────────────────────────────────────────────────────
+function toggleAlcohol(on) {
+  STATE.alcohol = on;
+  document.getElementById('alcohol-detail').classList.toggle('open', on);
+}
+
+function toggleEjercicio(on) {
+  document.getElementById('ejercicio-detail').classList.toggle('open', on);
+}
+
+// ── Calcular horas de sueño ────────────────────────────────────────────────
+document.getElementById('sueno_hora_inicio').addEventListener('change', calcSueno);
+document.getElementById('sueno_hora_fin').addEventListener('change', calcSueno);
+
+function calcSueno() {
+  const ini = document.getElementById('sueno_hora_inicio').value;
+  const fin = document.getElementById('sueno_hora_fin').value;
+  if (!ini || !fin) return;
+  let [h1, m1] = ini.split(':').map(Number);
+  let [h2, m2] = fin.split(':').map(Number);
+  let mins = (h2 * 60 + m2) - (h1 * 60 + m1);
+  if (mins < 0) mins += 24 * 60;
+  const horas = (mins / 60).toFixed(1);
+  document.getElementById('sueno_duracion').value = horas;
+}
+
+// ── Recolectar datos del formulario ───────────────────────────────────────
+function collectData() {
+  const now = new Date();
+  const fecha = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+
+  const ini = document.getElementById('sueno_hora_inicio').value;
+  const fin = document.getElementById('sueno_hora_fin').value;
+
+  function formatTime(t) {
+    if (!t) return '';
+    const [h, m] = t.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+  }
+
+  return {
+    fecha,
+    sueno_hora_inicio: formatTime(ini),
+    sueno_hora_fin: formatTime(fin),
+    sueno_duracion: document.getElementById('sueno_duracion').value || null,
+    sueno_calidad: STATE.sueno_calidad,
+    sueno_descripcion: STATE.sueno_descripcion,
+
+    alimentacion_calidad: STATE.alimentacion_calidad,
+    desayuno_proteina: document.getElementById('desayuno_proteina').value || null,
+    desayuno_proteina_g: document.getElementById('desayuno_proteina_g').value || null,
+    desayuno_carbs: STATE.desayuno_carbs,
+    desayuno_extras: document.getElementById('desayuno_extras').value || null,
+    almuerzo_proteina: document.getElementById('almuerzo_proteina').value || null,
+    almuerzo_proteina_g: document.getElementById('almuerzo_proteina_g').value || null,
+    almuerzo_base: STATE.almuerzo_base,
+    cena_proteina: document.getElementById('cena_proteina').value || null,
+    cena_proteina_g: document.getElementById('cena_proteina_g').value || null,
+    cena_acompanantes: STATE.cena_acompanantes,
+
+    alcohol: STATE.alcohol,
+    alcohol_tipo: STATE.alcohol_tipo,
+    alcohol_unidades: document.getElementById('alcohol_unidades').value || null,
+
+    actividad_tipo: STATE.actividad_tipo,
+    actividad_duracion: document.getElementById('actividad_duracion').value || null,
+    actividad_sensacion: STATE.actividad_sensacion,
+    crossrope_saltos: document.getElementById('crossrope_saltos').value || null,
+    crossrope_objetivo: document.getElementById('crossrope_objetivo').value || null,
+
+    energia_nivel: STATE.energia_nivel,
+    animo: STATE.animo,
+    sintomas: STATE.sintomas,
+    notas_libres: document.getElementById('notas_libres').value || null,
+  };
+}
+
+// ── Guardar ────────────────────────────────────────────────────────────────
+async function guardar() {
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true;
+  btn.textContent = 'Guardando…';
+
+  const data = collectData();
+
+  // Siempre guardar en localStorage primero
+  const key = `registro_${data.fecha}_${Date.now()}`;
+  const entry = { key, data, status: 'pending', ts: Date.now() };
+  localStorage.setItem(key, JSON.stringify(entry));
+
+  // Intentar enviar a Notion
+  try {
+    const resp = await fetch(`${WORKER}/registro`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const result = await resp.json();
+    if (result.id) {
+      entry.status = 'synced';
+      entry.notion_id = result.id;
+      localStorage.setItem(key, JSON.stringify(entry));
+      showToast('✓ Guardado en Notion', 'ok');
+      setStatusDot('online');
+    } else {
+      showToast('Guardado local · sin conexión', 'err');
+      setStatusDot('pending');
+    }
+  } catch {
+    showToast('Guardado local · sin conexión', 'err');
+    setStatusDot('pending');
+  }
+
+  updatePendingBadge();
+  btn.disabled = false;
+  btn.textContent = 'Guardar registro';
+}
+
+// ── Sincronizar pendientes ─────────────────────────────────────────────────
+async function syncPending() {
+  const pending = getPendingEntries();
+  if (!pending.length) { showToast('Sin pendientes', 'ok'); return; }
+
+  let synced = 0;
+  for (const entry of pending) {
+    try {
+      const resp = await fetch(`${WORKER}/registro`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entry.data),
+      });
+      const result = await resp.json();
+      if (result.id) {
+        entry.status = 'synced';
+        localStorage.setItem(entry.key, JSON.stringify(entry));
+        synced++;
+      }
+    } catch { /* continuar con el siguiente */ }
+  }
+
+  updatePendingBadge();
+  showToast(synced ? `✓ ${synced} sincronizado(s)` : 'Sin conexión', synced ? 'ok' : 'err');
+}
+
+function getPendingEntries() {
+  const entries = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key.startsWith('registro_')) continue;
+    try {
+      const e = JSON.parse(localStorage.getItem(key));
+      if (e.status === 'pending') entries.push(e);
+    } catch {}
+  }
+  return entries;
+}
+
+function updatePendingBadge() {
+  const count = getPendingEntries().length;
+  const badge = document.getElementById('pending-badge');
+  if (count > 0) {
+    badge.textContent = `${count} pendiente${count > 1 ? 's' : ''}`;
+    badge.style.display = 'inline';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ── Probar conexión ────────────────────────────────────────────────────────
+async function checkConnection() {
+  try {
+    const resp = await fetch(WORKER, { signal: AbortSignal.timeout(5000) });
+    const data = await resp.json();
+    setStatusDot(data.status === 'ok' ? 'online' : 'offline');
+  } catch {
+    setStatusDot('offline');
+  }
+}
+
+async function testConnection() {
+  showToast('Probando conexión…');
+  await checkConnection();
+  const dot = document.getElementById('status-dot');
+  showToast(dot.classList.contains('online') ? '✓ Conexión OK' : '✗ Sin conexión', dot.classList.contains('online') ? 'ok' : 'err');
+}
+
+function setStatusDot(state) {
+  const dot = document.getElementById('status-dot');
+  dot.className = 'status-dot';
+  if (state === 'online') dot.classList.add('online');
+  if (state === 'pending') dot.classList.add('pending');
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = 'toast', 2800);
+}
+</script>
+</body>
+</html>
