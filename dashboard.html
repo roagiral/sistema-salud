@@ -243,7 +243,10 @@ async function syncLabs() {
     const resp = await fetch(`${WORKER}/labs`, {signal:AbortSignal.timeout(8000)});
     const data = await resp.json();
     if (data.results) {
-      LAB_RESULTS = data.results.map(parseLabResult).filter(Boolean).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+      LAB_RESULTS = data.results
+        .map(parseLabResult)
+        .filter(r => r && r.fecha && r.nombre && r.valor != null)
+        .sort((a,b) => a.nombre.localeCompare(b.nombre) || a.fecha.localeCompare(b.fecha));
       localStorage.setItem('cache_labs', JSON.stringify(LAB_RESULTS));
       showToast(`✓ ${LAB_RESULTS.length} resultados de lab`, 'ok');
     }
