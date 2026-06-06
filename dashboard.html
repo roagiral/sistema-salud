@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Dashboard · Sistema de Salud</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:#08080d;--bg2:#111118;--bg3:#1a1a24;--bg4:#22222f;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.12);
+  --text:#ede9f5;--text2:#9994b0;--text3:#55526a;
+  --lab:#c4a8ff;--lab-dim:rgba(196,168,255,0.1);
+  --habit:#7ee8a2;--habit-dim:rgba(126,232,162,0.1);
+  --warn:#ffb86c;--err:#ff6b8a;
+  --radius:14px;--radius-sm:8px;
+  --font:'DM Sans',sans-serif;--font-display:'Fraunces',serif;--mono:'DM Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;overflow-x:hidden}
+.header{position:sticky;top:0;z-index:100;background:rgba(8,8,13,0.92);backdrop-filter:blur(20px);padding:16px 20px 0;border-bottom:1px solid var(--border)}
+.header-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
+.header-title{font-family:var(--font-display);font-size:22px;font-weight:300;letter-spacing:-0.02em;line-height:1}
+.header-title em{font-style:italic;color:var(--lab)}
+.header-meta{font-size:11px;color:var(--text3);font-family:var(--mono);margin-top:4px}
+.sync-btn{background:var(--bg3);border:1px solid var(--border2);border-radius:20px;color:var(--text2);font-family:var(--font);font-size:12px;padding:6px 14px;cursor:pointer;display:flex;align-items:center;gap:6px}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--text3)}
+.sync-dot.ok{background:var(--habit);box-shadow:0 0 6px var(--habit)}
+.sync-dot.loading{background:var(--warn);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.tabs{display:flex}
+.tab{flex:1;padding:12px 0;text-align:center;font-size:13px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s}
+.tab.active-lab{color:var(--lab);border-color:var(--lab)}
+.tab.active-habit{color:var(--habit);border-color:var(--habit)}
+.main{padding:20px 16px 100px;max-width:480px;margin:0 auto}
+.view{display:none}
+.view.active{display:block}
+.section-title{font-size:11px;font-weight:500;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;margin-top:24px;display:flex;align-items:center;gap:8px}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.section-title:first-child{margin-top:0}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.stat-card.lab::before{background:linear-gradient(90deg,var(--lab),transparent)}
+.stat-card.habit::before{background:linear-gradient(90deg,var(--habit),transparent)}
+.stat-card.warn::before{background:linear-gradient(90deg,var(--warn),transparent)}
+.stat-card.err::before{background:linear-gradient(90deg,var(--err),transparent)}
+.stat-label{font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em}
+.stat-value{font-family:var(--font-display);font-size:28px;font-weight:600;line-height:1}
+.stat-value.lab{color:var(--lab)}.stat-value.habit{color:var(--habit)}.stat-value.warn{color:var(--warn)}.stat-value.err{color:var(--err)}
+.stat-unit{font-size:11px;color:var(--text3);margin-top:4px;font-family:var(--mono)}
+.stat-ref{font-size:10px;color:var(--text3);margin-top:2px}
+.stat-trend{font-size:11px;margin-top:6px}
+.stat-trend.up{color:var(--habit)}.stat-trend.down{color:var(--err)}.stat-trend.flat{color:var(--text3)}
+.chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:8px}
+.chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.chart-title{font-size:13px;font-weight:500}
+.chart-badge{font-size:10px;font-family:var(--mono);padding:3px 8px;border-radius:10px;border:1px solid var(--border2);color:var(--text3)}
+.chart-badge.lab{background:var(--lab-dim);color:var(--lab);border-color:rgba(196,168,255,0.2)}
+.chart-badge.habit{background:var(--habit-dim);color:var(--habit);border-color:rgba(126,232,162,0.2)}
+.chart-wrap{position:relative;height:160px}
+.alert{background:rgba(255,107,138,0.08);border:1px solid rgba(255,107,138,0.2);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;font-size:12px;color:var(--err);display:flex;align-items:flex-start;gap:10px}
+.alert-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.alert.warn{background:rgba(255,184,108,0.08);border-color:rgba(255,184,108,0.2);color:var(--warn)}
+.alert.ok{background:rgba(126,232,162,0.08);border-color:rgba(126,232,162,0.2);color:var(--habit)}
+.empty{text-align:center;padding:32px 20px;color:var(--text3)}
+.empty-icon{font-size:32px;margin-bottom:10px}
+.empty-text{font-size:13px;line-height:1.6}
+.heatmap{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:4px}
+.heatmap-cell{aspect-ratio:1;border-radius:3px;background:var(--bg3)}
+.heatmap-cell.l1{background:rgba(126,232,162,0.15)}.heatmap-cell.l2{background:rgba(126,232,162,0.35)}
+.heatmap-cell.l3{background:rgba(126,232,162,0.6)}.heatmap-cell.l4{background:rgba(126,232,162,0.85)}
+.heatmap-label{font-size:9px;color:var(--text3);font-family:var(--mono);margin-bottom:6px;display:flex;justify-content:space-between}
+.metrics-list{display:flex;flex-direction:column;gap:6px}
+.metric-row{background:var(--bg3);border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px}
+.metric-name{font-size:12px;font-weight:500;flex:1}
+.metric-val{font-family:var(--mono);font-size:13px;font-weight:500}
+.metric-val.lab{color:var(--lab)}.metric-val.warn{color:var(--warn)}.metric-val.err{color:var(--err)}
+.metric-unit{font-size:10px;color:var(--text3);font-family:var(--mono);min-width:40px;text-align:right}
+.metric-bar-wrap{width:100%;height:3px;background:var(--bg4);border-radius:2px;margin-top:4px}
+.metric-bar{height:3px;border-radius:2px;background:var(--lab)}
+.metric-bar.warn{background:var(--warn)}.metric-bar.err{background:var(--err)}
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-10px);background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:9px 18px;font-size:12px;opacity:0;transition:all 0.25s;pointer-events:none;z-index:200;white-space:nowrap;font-family:var(--mono)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.ok{border-color:var(--habit);color:var(--habit)}.toast.err{border-color:var(--err);color:var(--err)}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(8,8,13,0.95);backdrop-filter:blur(20px);border-top:1px solid var(--border);padding:10px 16px 24px;display:flex;gap:8px}
+.nav-btn{flex:1;padding:11px;border-radius:10px;border:1px solid var(--border);background:var(--bg2);color:var(--text2);font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px}
+.nav-btn.active-lab{background:var(--lab-dim);border-color:rgba(196,168,255,0.3);color:var(--lab)}
+.nav-btn.active-habit{background:var(--habit-dim);border-color:rgba(126,232,162,0.3);color:var(--habit)}
+.nav-btn-app{background:var(--bg3);color:var(--text3);font-size:12px;max-width:80px}
+</style>
+</head>
+<body>
+<script>const WORKER="https://salud-proxy.roagiral.workers.dev";</script>
+
+<header class="header">
+  <div class="header-top">
+    <div>
+      <div class="header-title">Mi <em>Salud</em></div>
+      <div class="header-meta" id="header-meta">cargando…</div>
+    </div>
+    <button class="sync-btn" onclick="syncAll()">
+      <div class="sync-dot" id="sync-dot"></div>Actualizar
+    </button>
+  </div>
+  <div class="tabs">
+    <div class="tab active-habit" id="tab-habit" onclick="switchView('habit')">📊 Hábitos</div>
+    <div class="tab" id="tab-lab" onclick="switchView('lab')">🔬 Laboratorio</div>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- VISTA LAB -->
+  <div class="view" id="view-lab">
+    <div id="alerts-lab"></div>
+    <div class="section-title">Últimos valores</div>
+    <div class="stats-grid" id="lab-kpis"></div>
+    <div class="section-title">Todas las métricas</div>
+    <div class="metrics-list" id="lab-metrics-list"></div>
+    <div class="section-title">Evolución histórica</div>
+    <div id="lab-charts"></div>
+  </div>
+
+  <!-- VISTA HÁBITOS -->
+  <div class="view active" id="view-habit">
+    <div id="alerts-habit"></div>
+    <div class="section-title">Últimos 7 días</div>
+    <div class="stats-grid" id="habit-stats"></div>
+    <div class="section-title">Sueño</div>
+    <div class="chart-card">
+      <div class="chart-header"><span class="chart-title">Horas y calidad de sueño</span><span class="chart-badge habit">30 días</span></div>
+      <div class="chart-wrap"><canvas id="chart-sueno"></canvas></div>
+    </div>
+    <div class="section-title">Energía y ánimo</div>
+    <div class="chart-card">
+      <div class="chart-header"><span class="chart-title">Energía · Ánimo</span><span class="chart-badge habit">escala 1–5</span></div>
+      <div class="chart-wrap"><canvas id="chart-energia"></canvas></div>
+    </div>
+    <div class="section-title">Actividad física</div>
+    <div class="chart-card">
+      <div class="chart-header"><span class="chart-title">Minutos de actividad</span><span class="chart-badge habit">por día</span></div>
+      <div class="chart-wrap"><canvas id="chart-actividad"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header"><span class="chart-title">Consistencia de entrenamiento</span><span class="chart-badge habit">5 semanas</span></div>
+      <div class="heatmap-label"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+      <div class="heatmap" id="heatmap"></div>
+    </div>
+    <div class="section-title">Síntomas y correlaciones</div>
+    <div class="chart-card">
+      <div class="chart-header"><span class="chart-title">Frecuencia de síntomas</span><span class="chart-badge habit">último mes</span></div>
+      <div class="chart-wrap" style="height:130px"><canvas id="chart-sintomas"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header"><span class="chart-title">Alcohol → sueño día siguiente</span><span class="chart-badge">correlación</span></div>
+      <div class="chart-wrap" style="height:130px"><canvas id="chart-alcohol"></canvas></div>
+    </div>
+  </div>
+
+</main>
+
+<div class="bottom-nav">
+  <button class="nav-btn active-habit" id="nav-habit" onclick="switchView('habit')">📊 Hábitos</button>
+  <button class="nav-btn" id="nav-lab" onclick="switchView('lab')">🔬 Laboratorio</button>
+  <a class="nav-btn nav-btn-app" href="https://roagiral.github.io/sistema-salud/">← App</a>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Estado ────────────────────────────────────────────────────────────────────
+let REGISTROS = [];
+let LAB_RESULTS = []; // array de {nombre, fecha_examen, valor, unidad, ref_min, ref_max}
+let chartsLab = {};
+let chartsHabit = {};
+
+const CHART_BASE = {
+  responsive:true, maintainAspectRatio:false,
+  plugins:{ legend:{display:false}, tooltip:{backgroundColor:'#1a1a24',titleColor:'#9994b0',bodyColor:'#ede9f5',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,padding:10,cornerRadius:8} },
+  scales:{ x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#55526a',font:{family:'DM Mono',size:10}}}, y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#55526a',font:{family:'DM Mono',size:10}}} }
+};
+
+// Referencias clínicas por nombre de métrica (flexible — se usan si Notion no trae ref_min/max)
+const REFS_DEFAULT = {
+  'Vitamina B12':{min:200,opt:400,max:900,unit:'pg/mL'},
+  'Ferritina':{min:30,opt:100,max:300,unit:'ng/mL'},
+  'Hierro sérico':{min:60,opt:100,max:170,unit:'μg/dL'},
+  'Hemoglobina':{min:13.5,opt:15,max:17.5,unit:'g/dL'},
+  'Hematocrito':{min:41,opt:47,max:53,unit:'%'},
+  'Homocisteína':{min:0,opt:10,max:15,unit:'μmol/L'},
+  'Glucosa':{min:70,opt:90,max:100,unit:'mg/dL'},
+  'Insulina':{min:0,opt:7,max:15,unit:'μUI/mL'},
+  'Colesterol total':{min:0,opt:180,max:200,unit:'mg/dL'},
+  'HDL':{min:40,opt:55,max:999,unit:'mg/dL'},
+  'LDL':{min:0,opt:100,max:130,unit:'mg/dL'},
+  'Triglicéridos':{min:0,opt:100,max:150,unit:'mg/dL'},
+  'Vitamina D':{min:30,opt:50,max:80,unit:'ng/mL'},
+  'Testosterona':{min:300,opt:500,max:1000,unit:'ng/dL'},
+  'TSH':{min:0.5,opt:2,max:4.5,unit:'mUI/L'},
+  'PCR ultrasensible':{min:0,opt:0.5,max:1,unit:'mg/L'},
+  'Cortisol':{min:6,opt:15,max:25,unit:'μg/dL'},
+};
+
+// KPIs prioritarios para las tarjetas de resumen
+const KPI_PRIORITY = ['Vitamina B12','Ferritina','Hemoglobina','Vitamina D','Glucosa','Testosterona'];
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  const now = new Date();
+  const dias=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const meses=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  document.getElementById('header-meta').textContent = `${dias[now.getDay()]} ${now.getDate()} ${meses[now.getMonth()]} · Dashboard`;
+  syncAll();
+});
+
+// ── Sync ──────────────────────────────────────────────────────────────────────
+async function syncAll() {
+  const dot = document.getElementById('sync-dot');
+  dot.className = 'sync-dot loading';
+  await Promise.all([syncRegistros(), syncLabs()]);
+  dot.className = 'sync-dot ok';
+}
+
+async function syncRegistros() {
+  try {
+    const resp = await fetch(`${WORKER}/registros`, {signal:AbortSignal.timeout(8000)});
+    const data = await resp.json();
+    if (data.results) {
+      REGISTROS = data.results.map(parseRegistro).filter(Boolean).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+      localStorage.setItem('cache_registros', JSON.stringify(REGISTROS));
+    }
+  } catch {
+    const c = localStorage.getItem('cache_registros');
+    if (c) REGISTROS = JSON.parse(c);
+  }
+  renderHabitos();
+}
+
+async function syncLabs() {
+  try {
+    const resp = await fetch(`${WORKER}/labs`, {signal:AbortSignal.timeout(8000)});
+    const data = await resp.json();
+    if (data.results) {
+      LAB_RESULTS = data.results.map(parseLabResult).filter(Boolean).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+      localStorage.setItem('cache_labs', JSON.stringify(LAB_RESULTS));
+      showToast(`✓ ${LAB_RESULTS.length} resultados de lab`, 'ok');
+    }
+  } catch {
+    const c = localStorage.getItem('cache_labs');
+    if (c) LAB_RESULTS = JSON.parse(c);
+  }
+  renderLab();
+}
+
+function parseRegistro(page) {
+  try {
+    const p = page.properties;
+    const aniMap={'Muy bien':5,'Bien':4,'Neutral':3,'Mal':2};
+    return {
+      fecha: p['Fecha']?.title?.[0]?.text?.content||'',
+      sueno_duracion: p['Sueño duración h']?.number||null,
+      sueno_calidad: parseInt(p['Sueño calidad']?.select?.name)||null,
+      energia: parseInt(p['Energía nivel']?.select?.name)||null,
+      animo: aniMap[p['Ánimo']?.select?.name]||null,
+      actividad_duracion: p['Actividad duración min']?.number||null,
+      actividad_tipo: p['Actividad tipo']?.multi_select?.map(s=>s.name)||[],
+      sintomas: p['Síntomas']?.multi_select?.map(s=>s.name)||[],
+      alcohol: p['Alcohol']?.checkbox||false,
+    };
+  } catch { return null; }
+}
+
+function parseLabResult(page) {
+  try {
+    const p = page.properties;
+    return {
+      nombre: p['Nombre']?.title?.[0]?.text?.content||'',
+      fecha: p['Fecha examen']?.date?.start||'',
+      valor: p['Valor']?.number??null,
+      unidad: p['Unidad']?.rich_text?.[0]?.text?.content||'',
+      ref_min: p['Ref mín']?.number??null,
+      ref_max: p['Ref máx']?.number??null,
+    };
+  } catch { return null; }
+}
+
+// ── Vista switch ──────────────────────────────────────────────────────────────
+function switchView(v) {
+  document.getElementById('view-lab').classList.toggle('active', v==='lab');
+  document.getElementById('view-habit').classList.toggle('active', v==='habit');
+  document.getElementById('tab-lab').className='tab'+(v==='lab'?' active-lab':'');
+  document.getElementById('tab-habit').className='tab'+(v==='habit'?' active-habit':'');
+  document.getElementById('nav-lab').className='nav-btn'+(v==='lab'?' active-lab':'');
+  document.getElementById('nav-habit').className='nav-btn'+(v==='habit'?' active-habit':'');
+}
+
+// ── LAB render ────────────────────────────────────────────────────────────────
+function renderLab() {
+  if (!LAB_RESULTS.length) {
+    document.getElementById('lab-kpis').innerHTML = '<div style="grid-column:1/-1" class="empty"><div class="empty-icon">🧪</div><div class="empty-text">Pide al panel de expertos:<br><strong>"Analizar nuevo examen"</strong><br>y los valores aparecerán aquí automáticamente</div></div>';
+    document.getElementById('lab-metrics-list').innerHTML = '';
+    document.getElementById('lab-charts').innerHTML = '';
+    document.getElementById('alerts-lab').innerHTML = '';
+    return;
+  }
+
+  renderLabKPIs();
+  renderLabAlerts();
+  renderLabMetricsList();
+  renderLabCharts();
+}
+
+function getMetricSeries(nombre) {
+  return LAB_RESULTS.filter(r => r.nombre === nombre).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+}
+
+function getLastValue(nombre) {
+  const s = getMetricSeries(nombre);
+  return s.length ? s[s.length-1] : null;
+}
+
+function getStatus(nombre, valor) {
+  const last = getLastValue(nombre);
+  const refMin = last?.ref_min ?? REFS_DEFAULT[nombre]?.min;
+  const refMax = last?.ref_max ?? REFS_DEFAULT[nombre]?.max;
+  const opt    = REFS_DEFAULT[nombre]?.opt;
+  if (valor == null) return 'lab';
+  if (refMin != null && valor < refMin) return 'err';
+  if (refMax != null && refMax < 999 && valor > refMax) return 'err';
+  if (opt != null && valor < opt) return 'warn';
+  return 'lab';
+}
+
+function renderLabKPIs() {
+  const grid = document.getElementById('lab-kpis');
+  // Mostrar las métricas prioritarias que tengamos datos
+  const toShow = KPI_PRIORITY.map(n => getLastValue(n)).filter(Boolean).slice(0,4);
+  // Si no hay suficientes prioritarias, completar con las que haya
+  if (toShow.length < 4) {
+    const allNames = [...new Set(LAB_RESULTS.map(r=>r.nombre))];
+    for (const n of allNames) {
+      if (toShow.length >= 4) break;
+      if (!toShow.find(t=>t.nombre===n)) toShow.push(getLastValue(n));
+    }
+  }
+  grid.innerHTML = toShow.map(r => {
+    const status = getStatus(r.nombre, r.valor);
+    const series = getMetricSeries(r.nombre);
+    const prev = series.length >= 2 ? series[series.length-2].valor : null;
+    const trend = prev != null ? (r.valor > prev ? '↑' : r.valor < prev ? '↓' : '→') : '';
+    const trendGood = ['HDL','Vitamina B12','Ferritina','Hemoglobina','Vitamina D','Testosterona'].includes(r.nombre);
+    const trendClass = trend==='↑' ? (trendGood?'up':'down') : trend==='↓' ? (trendGood?'down':'up') : 'flat';
+    return `<div class="stat-card ${status}">
+      <div class="stat-label">${r.nombre}</div>
+      <div class="stat-value ${status}">${r.valor}</div>
+      <div class="stat-unit">${r.unidad}</div>
+      <div class="stat-ref">${r.fecha.slice(0,7)}</div>
+      ${trend?`<div class="stat-trend ${trendClass}">${trend} vs anterior</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function renderLabAlerts() {
+  const container = document.getElementById('alerts-lab');
+  const alerts = [];
+  const allNames = [...new Set(LAB_RESULTS.map(r=>r.nombre))];
+  for (const n of allNames) {
+    const last = getLastValue(n);
+    if (!last || last.valor == null) continue;
+    const status = getStatus(n, last.valor);
+    if (status === 'err') alerts.push({type:'err', msg:`${n}: ${last.valor} ${last.unidad} — fuera de rango`});
+    else if (status === 'warn') alerts.push({type:'warn', msg:`${n}: ${last.valor} ${last.unidad} — por debajo del óptimo`});
+  }
+  container.innerHTML = alerts.slice(0,4).map(a=>`<div class="alert ${a.type==='warn'?'warn':''}"><div class="alert-icon">${a.type==='err'?'⚠️':'💡'}</div><div>${a.msg}</div></div>`).join('');
+}
+
+function renderLabMetricsList() {
+  const container = document.getElementById('lab-metrics-list');
+  const allNames = [...new Set(LAB_RESULTS.map(r=>r.nombre))];
+  container.innerHTML = allNames.map(n => {
+    const last = getLastValue(n);
+    if (!last) return '';
+    const status = getStatus(n, last.valor);
+    const ref = REFS_DEFAULT[n];
+    const min = last.ref_min ?? ref?.min ?? 0;
+    const max = last.ref_max ?? ref?.max ?? last.valor * 2;
+    const pct = max > 0 ? Math.min(100, Math.max(0, ((last.valor - min) / (max - min)) * 100)) : 50;
+    return `<div class="metric-row">
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span class="metric-name">${n}</span>
+          <span class="metric-val ${status}">${last.valor} <span class="metric-unit">${last.unidad}</span></span>
+        </div>
+        <div class="metric-bar-wrap"><div class="metric-bar ${status}" style="width:${pct}%"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderLabCharts() {
+  const container = document.getElementById('lab-charts');
+  const allNames = [...new Set(LAB_RESULTS.map(r=>r.nombre))];
+  // Agrupar métricas relacionadas
+  const groups = [
+    {title:'Vitaminas y minerales', keys:['Vitamina B12','Vitamina D','Hierro sérico','Ferritina']},
+    {title:'Serie roja', keys:['Hemoglobina','Hematocrito','Homocisteína']},
+    {title:'Metabólico', keys:['Glucosa','Insulina']},
+    {title:'Perfil lipídico', keys:['Colesterol total','HDL','LDL','Triglicéridos']},
+    {title:'Hormonal', keys:['Testosterona','TSH','Cortisol']},
+    {title:'Inflamación', keys:['PCR ultrasensible']},
+  ];
+  // Métricas sin grupo
+  const grouped = groups.flatMap(g=>g.keys);
+  const ungrouped = allNames.filter(n=>!grouped.includes(n));
+  if (ungrouped.length) groups.push({title:'Otras métricas', keys:ungrouped});
+
+  container.innerHTML = '';
+  for (const group of groups) {
+    const available = group.keys.filter(k => allNames.includes(k));
+    if (!available.length) continue;
+    const colors = ['#c4a8ff','#7ee8a2','#ffb86c','#ff6b8a'];
+    const datasets = available.map((k,i) => {
+      const series = getMetricSeries(k);
+      return { label:k, data:series.map(r=>r.valor), borderColor:colors[i%4], backgroundColor:colors[i%4]+'20', borderWidth:2, pointRadius:4, tension:0.3, fill:false };
+    });
+    const labels = getMetricSeries(available[0]).map(r=>r.fecha.slice(0,7));
+    const id = 'chart-lab-'+group.title.replace(/\s/g,'-');
+    const card = document.createElement('div');
+    card.className = 'chart-card';
+    card.innerHTML = `<div class="chart-header"><span class="chart-title">${group.title}</span><span class="chart-badge lab">histórico</span></div><div class="chart-wrap"><canvas id="${id}"></canvas></div>`;
+    container.appendChild(card);
+    setTimeout(() => {
+      if (chartsLab[id]) chartsLab[id].destroy();
+      const ctx = document.getElementById(id)?.getContext('2d');
+      if (!ctx) return;
+      chartsLab[id] = new Chart(ctx, { type:'line', data:{labels, datasets}, options:{...CHART_BASE, plugins:{...CHART_BASE.plugins, legend:{display:available.length>1, labels:{color:'#9994b0',font:{family:'DM Mono',size:10},boxWidth:12}}}} });
+    }, 50);
+  }
+}
+
+// ── HÁBITOS render ────────────────────────────────────────────────────────────
+function renderHabitos() {
+  if (!REGISTROS.length) {
+    document.getElementById('habit-stats').innerHTML = '<div style="grid-column:1/-1" class="empty"><div class="empty-icon">📱</div><div class="empty-text">Registra hábitos desde la app<br>para ver tendencias aquí</div></div>';
+    return;
+  }
+  renderHabitStats();
+  renderHabitAlerts();
+  renderHabitCharts();
+}
+
+function last7() { return REGISTROS.slice(-7); }
+function last30() { return REGISTROS.slice(-30); }
+function avg(arr,key) { const v=arr.map(r=>r[key]).filter(v=>v!=null); return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):'—'; }
+
+function renderHabitStats() {
+  const r7 = last7();
+  const avgS = avg(r7,'sueno_duracion');
+  const actDays = r7.filter(r=>r.actividad_duracion>0).length;
+  const avgE = avg(r7,'energia');
+  const sS = avgS!=='—'?(parseFloat(avgS)>=7?'habit':parseFloat(avgS)>=6?'warn':'err'):'habit';
+  const aS = actDays>=5?'habit':actDays>=3?'warn':'err';
+  const eS = avgE!=='—'?(parseFloat(avgE)>=4?'habit':parseFloat(avgE)>=3?'warn':'err'):'habit';
+  document.getElementById('habit-stats').innerHTML = `
+    <div class="stat-card ${sS}"><div class="stat-label">Sueño promedio</div><div class="stat-value ${sS}">${avgS}</div><div class="stat-unit">horas/noche</div><div class="stat-ref">cal: ${avg(r7,'sueno_calidad')}/5</div></div>
+    <div class="stat-card ${aS}"><div class="stat-label">Días activo</div><div class="stat-value ${aS}">${actDays}</div><div class="stat-unit">de 7 días</div><div class="stat-ref">objetivo: 5/sem</div></div>
+    <div class="stat-card ${eS}"><div class="stat-label">Energía media</div><div class="stat-value ${eS}">${avgE}</div><div class="stat-unit">escala 1–5</div><div class="stat-ref">últimos 7 días</div></div>
+    <div class="stat-card habit"><div class="stat-label">Registros</div><div class="stat-value habit">${REGISTROS.length}</div><div class="stat-unit">total acumulado</div><div class="stat-ref">desde mayo 2026</div></div>`;
+}
+
+function renderHabitAlerts() {
+  const r7=last7(); const alerts=[];
+  const s=parseFloat(avg(r7,'sueno_duracion'));
+  if(!isNaN(s)&&s<6) alerts.push({type:'err',msg:`Sueño bajo esta semana (${s}h). Con apnea, la calidad se ve más afectada.`});
+  const alc=r7.filter(r=>r.alcohol).length;
+  if(alc>=2) alerts.push({type:'warn',msg:`${alc} días con alcohol esta semana → impacto directo en sueño y energía.`});
+  const act=r7.filter(r=>r.actividad_duracion>0).length;
+  if(act<3) alerts.push({type:'warn',msg:`Solo ${act} días de actividad esta semana. Objetivo: 5 días.`});
+  document.getElementById('alerts-habit').innerHTML=alerts.map(a=>`<div class="alert ${a.type==='warn'?'warn':''}"><div class="alert-icon">${a.type==='err'?'⚠️':'💡'}</div><div>${a.msg}</div></div>`).join('');
+}
+
+function renderHabitCharts() {
+  const r30=last30();
+  const labels=r30.map(r=>r.fecha.slice(5));
+  const lineDs=(data,color,label)=>({label,data,borderColor:color,backgroundColor:color+'20',borderWidth:2,pointRadius:2,tension:0.4,fill:true});
+
+  // Sueño
+  destroyChart('sueno');
+  const ctxS=document.getElementById('chart-sueno')?.getContext('2d');
+  if(ctxS) chartsHabit['sueno']=new Chart(ctxS,{type:'bar',data:{labels,datasets:[{label:'Horas',data:r30.map(r=>r.sueno_duracion),backgroundColor:r30.map(r=>r.sueno_duracion>=7?'rgba(126,232,162,0.7)':r.sueno_duracion>=6?'rgba(255,184,108,0.7)':'rgba(255,107,138,0.7)'),borderRadius:4},{label:'Calidad',data:r30.map(r=>r.sueno_calidad),type:'line',borderColor:'#c4a8ff',backgroundColor:'transparent',borderWidth:2,pointRadius:2,tension:0.3,yAxisID:'y2'}]},options:{...CHART_BASE,plugins:{...CHART_BASE.plugins,legend:{display:true,labels:{color:'#9994b0',font:{family:'DM Mono',size:10},boxWidth:12}}},scales:{x:CHART_BASE.scales.x,y:{...CHART_BASE.scales.y,min:0,max:10},y2:{position:'right',grid:{drawOnChartArea:false},ticks:{color:'#55526a',font:{family:'DM Mono',size:10}},min:0,max:5}}}});
+
+  // Energía + Ánimo
+  destroyChart('energia');
+  const ctxE=document.getElementById('chart-energia')?.getContext('2d');
+  if(ctxE) chartsHabit['energia']=new Chart(ctxE,{type:'line',data:{labels,datasets:[lineDs(r30.map(r=>r.energia),'#ffb86c','Energía'),lineDs(r30.map(r=>r.animo),'#c4a8ff','Ánimo')]},options:{...CHART_BASE,plugins:{...CHART_BASE.plugins,legend:{display:true,labels:{color:'#9994b0',font:{family:'DM Mono',size:10},boxWidth:12}}},scales:{x:CHART_BASE.scales.x,y:{...CHART_BASE.scales.y,min:1,max:5}}}});
+
+  // Actividad
+  destroyChart('actividad');
+  const ctxA=document.getElementById('chart-actividad')?.getContext('2d');
+  if(ctxA) chartsHabit['actividad']=new Chart(ctxA,{type:'bar',data:{labels,datasets:[{data:r30.map(r=>r.actividad_duracion||0),backgroundColor:r30.map(r=>{const t=r.actividad_tipo;if(t.includes('Cardio + HIIT'))return 'rgba(255,184,108,0.7)';if(t.includes('Fuerza'))return 'rgba(196,168,255,0.7)';if(t.includes('Natación'))return 'rgba(126,232,162,0.7)';return 'rgba(85,82,106,0.5)';}),borderRadius:4}]},options:{...CHART_BASE}});
+
+  // Heatmap
+  const hm=document.getElementById('heatmap');
+  if(hm){const today=new Date();hm.innerHTML=Array.from({length:35},(_,i)=>{const d=new Date(today);d.setDate(today.getDate()-34+i);const key=d.toISOString().split('T')[0].slice(5);const rec=r30.find(r=>r.fecha.slice(5)===key);const mins=rec?.actividad_duracion||0;const lv=mins===0?'':mins<30?'l1':mins<40?'l2':mins<50?'l3':'l4';return `<div class="heatmap-cell ${lv}" title="${key}: ${mins}min"></div>`;}).join('');}
+
+  // Síntomas
+  const sf={};r30.forEach(r=>r.sintomas.filter(s=>s!=='Ninguno').forEach(s=>sf[s]=(sf[s]||0)+1));
+  const sl=Object.keys(sf).sort((a,b)=>sf[b]-sf[a]);
+  destroyChart('sintomas');
+  const ctxSint=document.getElementById('chart-sintomas')?.getContext('2d');
+  if(ctxSint&&sl.length) chartsHabit['sintomas']=new Chart(ctxSint,{type:'bar',data:{labels:sl,datasets:[{data:sl.map(s=>sf[s]),backgroundColor:['rgba(255,107,138,0.7)','rgba(255,184,108,0.7)','rgba(196,168,255,0.7)','rgba(126,232,162,0.7)'],borderRadius:4}]},options:{...CHART_BASE,indexAxis:'y',scales:{x:{...CHART_BASE.scales.x,min:0},y:CHART_BASE.scales.y}}});
+
+  // Alcohol → sueño
+  const withAlc=r30.filter(r=>r.alcohol).map(r=>{const idx=REGISTROS.indexOf(r);return REGISTROS[idx+1]?.sueno_calidad??null;}).filter(v=>v!=null);
+  const noAlc=r30.filter(r=>!r.alcohol).map(r=>{const idx=REGISTROS.indexOf(r);return REGISTROS[idx+1]?.sueno_calidad??null;}).filter(v=>v!=null);
+  const avgA=withAlc.length?(withAlc.reduce((a,b)=>a+b,0)/withAlc.length).toFixed(1):0;
+  const avgN=noAlc.length?(noAlc.reduce((a,b)=>a+b,0)/noAlc.length).toFixed(1):0;
+  destroyChart('alcohol');
+  const ctxAlc=document.getElementById('chart-alcohol')?.getContext('2d');
+  if(ctxAlc) chartsHabit['alcohol']=new Chart(ctxAlc,{type:'bar',data:{labels:['Con alcohol','Sin alcohol'],datasets:[{data:[avgA,avgN],backgroundColor:['rgba(255,107,138,0.7)','rgba(126,232,162,0.7)'],borderRadius:6}]},options:{...CHART_BASE,scales:{x:CHART_BASE.scales.x,y:{...CHART_BASE.scales.y,min:0,max:5}}}});
+}
+
+function destroyChart(key) { if(chartsHabit[key]){chartsHabit[key].destroy();delete chartsHabit[key];} }
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className=`toast show ${type}`;
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.className='toast',2800);
+}
+</script>
+</body>
+</html>
