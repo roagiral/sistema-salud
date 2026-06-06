@@ -421,11 +421,25 @@ function renderLabCharts() {
     const available = group.keys.filter(k => allNames.includes(k));
     if (!available.length) continue;
     const colors = ['#c4a8ff','#7ee8a2','#ffb86c','#ff6b8a'];
+
+    // Construir eje X unificado con TODAS las fechas de TODAS las métricas del grupo
+    const allDates = [...new Set(
+      available.flatMap(k => getMetricSeries(k).map(r => r.fecha.slice(0,7)))
+    )].sort();
+
+    // Alinear cada métrica al eje unificado — null donde no hay dato
     const datasets = available.map((k,i) => {
       const series = getMetricSeries(k);
-      return { label:k, data:series.map(r=>r.valor), borderColor:colors[i%4], backgroundColor:colors[i%4]+'20', borderWidth:2, pointRadius:4, tension:0.3, fill:false };
+      const byDate = Object.fromEntries(series.map(r => [r.fecha.slice(0,7), r.valor]));
+      const data = allDates.map(d => byDate[d] ?? null);
+      return {
+        label:k, data,
+        borderColor:colors[i%4], backgroundColor:colors[i%4]+'20',
+        borderWidth:2, pointRadius: d => d !== null ? 4 : 0,
+        tension:0.3, fill:false, spanGaps:false
+      };
     });
-    const labels = getMetricSeries(available[0]).map(r=>r.fecha.slice(0,7));
+    const labels = allDates;
     const id = 'chart-lab-'+group.title.replace(/\s/g,'-');
     const card = document.createElement('div');
     card.className = 'chart-card';
