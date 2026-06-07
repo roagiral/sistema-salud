@@ -204,7 +204,7 @@ const REFS_DEFAULT = {
 };
 
 // KPIs prioritarios para las tarjetas de resumen
-const KPI_PRIORITY = ['Vitamina B12','Ferritina','Hemoglobina','Vitamina D','Glucosa','Testosterona'];
+const KPI_PRIORITY = ['Vitamina B12','Ferritina sérica','Hemoglobina','Colesterol HDL','Glucosa en ayunas','TSH'];
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 window.addEventListener('load', () => {
@@ -407,12 +407,14 @@ function renderLabCharts() {
   const allNames = [...new Set(LAB_RESULTS.map(r=>r.nombre))];
   // Agrupar métricas relacionadas
   const groups = [
-    {title:'Vitaminas y minerales', keys:['Vitamina B12','Vitamina D','Hierro sérico','Ferritina']},
-    {title:'Serie roja', keys:['Hemoglobina','Hematocrito','Homocisteína']},
-    {title:'Metabólico', keys:['Glucosa','Insulina']},
-    {title:'Perfil lipídico', keys:['Colesterol total','HDL','LDL','Triglicéridos']},
-    {title:'Hormonal', keys:['Testosterona','TSH','Cortisol']},
-    {title:'Inflamación', keys:['PCR ultrasensible']},
+    {title:'Vitaminas y minerales', keys:['Vitamina B12','Hierro sérico','Ferritina sérica','Ácido fólico']},
+    {title:'Serie roja', keys:['Hemoglobina','Hematocrito','VCM','HCM','MCHC']},
+    {title:'Metabólico', keys:['Glucosa en ayunas','Glicemia en ayunas','HbA1c','Creatinina sérica','Nitrógeno uréico']},
+    {title:'Perfil lipídico', keys:['Colesterol total','Colesterol HDL','LDL Inmunológico','Triglicéridos','Colesterol VLDL']},
+    {title:'Hormonal', keys:['Testosterona total','Testosterona libre','TSH','Tiroxina T4 libre','SHBG']},
+    {title:'Inflamación e inmunidad', keys:['Proteína C reactiva','VSG','ALT (GPT)','AST (GOT)','GGT']},
+    {title:'Hierro y transferrina', keys:['Ferritina sérica','Saturación transferrina','Capacidad total de fijación de hierro']},
+    {title:'Inbody — composición corporal', keys:['Inbody Peso','Inbody % grasa','Inbody Masa muscular','Inbody Masa grasa','Inbody Grasa visceral nivel','Inbody Puntuación']},
   ];
   // Métricas sin grupo
   const grouped = groups.flatMap(g=>g.keys);
