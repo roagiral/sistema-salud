@@ -176,6 +176,16 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 .alert.w{background:var(--warn-dim);border-color:rgba(186,117,23,0.3);color:var(--warn-text)}
 .alert i{flex-shrink:0;margin-top:1px}
 
+
+/* LEYENDA DE COLORES */
+.color-legend{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px}
+.cl-title{font-size:10px;font-weight:500;color:var(--text3);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px}
+.cl-items{display:flex;flex-direction:column;gap:5px}
+.cl-item{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2)}
+.cl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.cl-dot.ok{background:var(--ok)}.cl-dot.warn{background:var(--warn)}.cl-dot.err{background:var(--err)}
+.cl-desc{color:var(--text3);font-size:10px;margin-left:2px}
+
 /* EMPTY */
 .empty{text-align:center;padding:28px 16px;color:var(--text3)}
 .empty-icon{font-size:28px;margin-bottom:8px}
@@ -262,7 +272,16 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 
     <!-- SUB 0: ESTADO -->
     <div class="subview on" id="sv-0">
-      <div class="sec">Resumen del último examen</div>
+      <!-- LEYENDA DE COLORES -->
+      <div class="color-legend">
+        <div class="cl-title">Guía de colores</div>
+        <div class="cl-items">
+          <div class="cl-item"><div class="cl-dot ok"></div><strong>Verde</strong><span class="cl-desc">— dentro del rango óptimo para tu perfil</span></div>
+          <div class="cl-item"><div class="cl-dot warn"></div><strong>Amarillo</strong><span class="cl-desc">— en rango normal pero mejorable</span></div>
+          <div class="cl-item"><div class="cl-dot err"></div><strong>Rojo</strong><span class="cl-desc">— fuera de rango, requiere atención</span></div>
+        </div>
+      </div>
+            <div class="sec">Resumen del último examen</div>
       <div class="semaforo" id="semaforo"></div>
       <div class="sec">Métricas críticas para tu perfil</div>
       <div id="critical-metrics"></div>
@@ -360,6 +379,81 @@ const REFS = {
   'Inbody Grasa visceral nivel':{min:1,opt:4,max:9, unit:'nivel',  good_up:false},
   'Inbody Puntuación':{min:70, opt:85,  max:100,   unit:'pts',    good_up:true},
 };
+
+
+// Nombres amigables para métricas técnicas
+const NOMBRES = {
+  'VCM': 'Tamaño de glóbulos rojos',
+  'HCM': 'Hemoglobina por glóbulo',
+  'MCHC': 'Concentración de hemoglobina',
+  'ADE-CV': 'Variación tamaño glóbulos',
+  'ADE-SD': 'Variación tamaño glóbulos (SD)',
+  'LDL Inmunológico': 'Colesterol "malo" (LDL)',
+  'Colesterol HDL': 'Colesterol "bueno" (HDL)',
+  'Colesterol VLDL': 'Colesterol VLDL',
+  'Colesterol total': 'Colesterol total',
+  'AC Anticelulas Parietales (APCA)': 'Anticuerpos gástricos (APCA)',
+  'Anticuerpos anti-gliadina IgA': 'Anticuerpos celiaquía IgA',
+  'Anticuerpos anti-gliadina IgG': 'Anticuerpos celiaquía IgG',
+  'Anticuerpos Transglutaminasa IgA': 'Anticuerpos celiaquía IgA-2',
+  'Anticuerpos Transglutaminasa IgG': 'Anticuerpos celiaquía IgG-2',
+  'Saturación transferrina': 'Capacidad de transporte de hierro',
+  'Capacidad total de fijación de hierro': 'Capacidad máxima de hierro en sangre',
+  'Capacidad de combinación de hierro': 'Capacidad libre de hierro',
+  'TSH': 'Hormona tiroidea (TSH)',
+  'Tiroxina T4 libre': 'Tiroxina libre (T4)',
+  'VSG': 'Velocidad de inflamación (VSG)',
+  'ALT (GPT)': 'Enzima hepática ALT',
+  'AST (GOT)': 'Enzima hepática AST',
+  'GGT': 'Función hepática (GGT)',
+  'HbA1c': 'Azúcar promedio últimos 3 meses',
+  'Glicemia en ayunas': 'Glucosa en ayunas',
+  'Glucosa en ayunas': 'Glucosa en ayunas',
+  'Nitrógeno uréico': 'Función renal (urea)',
+  'Creatinina sérica': 'Función renal (creatinina)',
+  'Densidad urinaria': 'Concentración de orina',
+  'Recuento de eritrocitos': 'Conteo de glóbulos rojos',
+  'Leucocitos': 'Glóbulos blancos (defensa)',
+  'Neutrófilos %': 'Neutrófilos (% defensa)',
+  'Neutrófilos abs': 'Neutrófilos (cantidad)',
+  'Linfocitos %': 'Linfocitos (% inmunidad)',
+  'Linfocitos abs': 'Linfocitos (cantidad)',
+  'Monocitos %': 'Monocitos (% limpieza)',
+  'Monocitos abs': 'Monocitos (cantidad)',
+  'Eosinófilos %': 'Eosinófilos (% alergias)',
+  'Eosinófilos abs': 'Eosinófilos (cantidad)',
+  'Basófilos %': 'Basófilos (%)',
+  'Basófilos abs': 'Basófilos (cantidad)',
+  'Plaquetas': 'Plaquetas (coagulación)',
+  'VPM': 'Tamaño de plaquetas',
+  'Proteína C reactiva': 'Inflamación (PCR)',
+  'Prolactina sérica': 'Prolactina',
+  'SHBG': 'Proteína transportadora hormonal',
+  'Testosterona total': 'Testosterona total',
+  'Testosterona libre': 'Testosterona libre',
+  'Ácido fólico': 'Vitamina B9 (folato)',
+  'Vitamina B12': 'Vitamina B12',
+  'Ferritina sérica': 'Ferritina (reserva de hierro)',
+  'Hierro sérico': 'Hierro en sangre',
+  'Hemoglobina': 'Hemoglobina',
+  'Hematocrito': 'Hematocrito (volumen de sangre roja)',
+  'Ácido úrico': 'Ácido úrico',
+  'Inbody Peso': 'Peso corporal',
+  'Inbody % grasa': '% de grasa corporal',
+  'Inbody Masa muscular': 'Masa muscular',
+  'Inbody Masa grasa': 'Masa grasa',
+  'Inbody Masa libre de grasa': 'Masa libre de grasa',
+  'Inbody Grasa visceral nivel': 'Grasa visceral (nivel)',
+  'Inbody Tasa metabólica basal': 'Metabolismo basal',
+  'Inbody Puntuación': 'Puntuación Inbody',
+  'Inbody Agua corporal': 'Agua corporal total',
+  'Inbody Relación cintura-cadera': 'Relación cintura-cadera',
+};
+
+// Función para obtener nombre amigable
+function nAmig(nombre) {
+  return NOMBRES[nombre] || nombre;
+}
 
 const CHART_OPT = {
   responsive:true, maintainAspectRatio:false,
@@ -589,7 +683,7 @@ function renderCritical() {
     return `<div class="mc">
       <div class="mc-bar-left ${s}"></div>
       <div class="mc-top">
-        <span class="mc-name">${n}</span>
+        <span class="mc-name">${nAmig(n)}</span>
         <span class="mc-status ${s}">${statusLabel}</span>
       </div>
       <div class="mc-val-row">
@@ -650,7 +744,7 @@ function renderSystems(allNames) {
       const deltaStr = d ? `<span style="font-size:9px;font-family:var(--mono);color:${d.dir==='up'?'var(--ok-text)':d.dir==='dn'?'var(--err-text)':'var(--text3)'}">${d.label}</span>` : '';
       return `<div class="accord-metric">
         <div class="am-dot ${s}"></div>
-        <div class="am-name">${k}</div>
+        <div class="am-name">${nAmig(k)}</div>
         ${deltaStr}
         <div class="am-val ${s}">${last.valor}</div>
         <div class="am-unit">${last.unidad}</div>
@@ -704,7 +798,7 @@ function renderSystemChart(chartId, keys, si) {
       const range = (r.max===999 ? v*1.5 : r.max) - r.min;
       return range>0 ? Math.round(((v-r.min)/range)*100) : null;
     });
-    return {label:k,data,borderColor:colors[i%5],backgroundColor:colors[i%5]+'20',borderWidth:1.5,pointRadius:3,tension:0.3,fill:false,spanGaps:false};
+    return {label:nAmig(k),data,borderColor:colors[i%5],backgroundColor:colors[i%5]+'20',borderWidth:1.5,pointRadius:3,tension:0.3,fill:false,spanGaps:false};
   });
   chartsL[chartId] = new Chart(ctx, {
     type:'line',
@@ -734,7 +828,7 @@ function trendNav(dir) {
 function renderTrend() {
   if (!trendNames.length) return;
   const n = trendNames[trendIdx];
-  document.getElementById('tn-name').textContent = n;
+  document.getElementById('tn-name').textContent = nAmig(n);
   document.getElementById('tn-counter').textContent = `${trendIdx+1}/${trendNames.length}`;
   document.getElementById('tn-prev').disabled = trendIdx===0;
   document.getElementById('tn-next').disabled = trendIdx===trendNames.length-1;
