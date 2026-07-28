@@ -807,4 +807,50 @@ function pendientes(){
   const out = [];
   for (let i = 0; i < localStorage.length; i++){
     const k = localStorage.key(i);
-    if (!k || !k.startsWit
+    if (!k || !k.startsWith('registro_')) continue;
+    try { const e = JSON.parse(localStorage.getItem(k)); if (e.status === 'pending') out.push(e); } catch {}
+  }
+  return out;
+}
+
+function purgar(){
+  const corte = Date.now() - 30*24*60*60*1000, del = [];
+  for (let i = 0; i < localStorage.length; i++){
+    const k = localStorage.key(i);
+    if (!k || !k.startsWith('registro_')) continue;
+    try { const e = JSON.parse(localStorage.getItem(k)); if (e.status === 'synced' && e.ts < corte) del.push(k); } catch {}
+  }
+  del.forEach(k => localStorage.removeItem(k));
+}
+
+function badge(){
+  const n = pendientes().length, b = document.getElementById('badge');
+  if (n){ b.textContent = `${n} pendiente${n>1?'s':''}`; b.style.display = 'inline'; } else b.style.display = 'none';
+}
+
+// ═══ Sueño, conexión, toast ════════════════════════════════════════════════════
+document.getElementById('sueno_hora_inicio').addEventListener('change', calcSueno);
+document.getElementById('sueno_hora_fin').addEventListener('change', calcSueno);
+function calcSueno(){
+  const i = v('sueno_hora_inicio'), f = v('sueno_hora_fin');
+  if (!i || !f) return;
+  const [h1,m1] = i.split(':').map(Number), [h2,m2] = f.split(':').map(Number);
+  let mm = (h2*60+m2) - (h1*60+m1); if (mm < 0) mm += 1440;
+  document.getElementById('sueno_duracion').value = (mm/60).toFixed(1);
+}
+
+async function checkConn(){
+  try { const r = await fetch(WORKER, {signal:AbortSignal.timeout(5000)}); const j = await r.json(); setDot(j.status==='ok'?'online':'offline'); }
+  catch { setDot('offline'); }
+}
+function setDot(s){ const d = document.getElementById('dot'); d.className = 'dot'; if (s==='online'||s==='pending') d.classList.add(s); }
+
+let tt;
+function toast(msg, type=''){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast show ${type}`;
+  clearTimeout(tt); tt = setTimeout(() => t.className = 'toast', 2800);
+}
+</script>
+</body>
+</html>
