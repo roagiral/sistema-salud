@@ -143,7 +143,29 @@ opacity:0;transition:all .3s;pointer-events:none;z-index:200;white-space:nowrap}
 </head>
 <body>
 
-<script>const WORKER="https://salud-proxy.roagiral.workers.dev";</script>
+<script>const WORKER="https://salud-proxy.roagiral.workers.dev";const APP_VER="v6.1";</script>
+
+<div id="jserr"></div>
+<script>
+// Diagnóstico: cualquier error de JavaScript se muestra en pantalla en vez de
+// quedarse invisible en la consola del celular.
+(function(){
+  function mostrar(txt){
+    var d = document.getElementById('jserr');
+    if (!d) return;
+    d.style.cssText = 'display:block;position:relative;z-index:300;background:#4a1414;color:#ffd9d9;'
+      + 'padding:12px 14px;font:11px/1.6 ui-monospace,monospace;white-space:pre-wrap;word-break:break-word';
+    d.textContent = txt;
+  }
+  window.addEventListener('error', function(e){
+    mostrar('ERROR JS\n' + (e.message||'') + '\n' + (e.filename||'') + ' línea ' + (e.lineno||'?') + ':' + (e.colno||'?'));
+  });
+  window.addEventListener('unhandledrejection', function(e){
+    var r = e.reason;
+    mostrar('PROMESA RECHAZADA\n' + ((r && (r.stack || r.message)) || String(r)));
+  });
+})();
+</script>
 
 <header class="header">
   <div>
@@ -399,7 +421,7 @@ function hdr() {
   const dt = new Date(y,m-1,d);
   const dias=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
   const mes=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  document.getElementById('hsub').textContent = `${dias[dt.getDay()]} ${d} ${mes[m-1]} ${y}`;
+  document.getElementById('hsub').textContent = `${dias[dt.getDay()]} ${d} ${mes[m-1]} ${y} · ${APP_VER}`;
 }
 
 function usarAyer(){
