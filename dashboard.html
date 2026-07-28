@@ -18,6 +18,7 @@
   --lab:#7F77DD; --lab-dim:rgba(127,119,221,0.12);
   --habit:#1D9E75; --habit-dim:rgba(29,158,117,0.12);
   --radius:14px; --radius-sm:8px;
+  --hz-h:0;
   --font:'DM Sans',sans-serif; --serif:'Fraunces',serif; --mono:'DM Mono',monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -203,6 +204,49 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.ok{border-color:var(--ok);color:var(--ok-text)}
 .toast.err{border-color:var(--err-text);color:var(--err-text)}
+
+/* ══ Fase 2 ══ */
+.hz{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.hzb{flex:1;min-width:52px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);
+color:var(--text3);font-family:var(--mono);font-size:11px;padding:8px 4px;text-align:center;cursor:pointer;white-space:nowrap}
+.hzb.on{background:var(--habit-dim);border-color:var(--habit);color:var(--ok-text)}
+
+.verdict{background:var(--bg2);border:1px solid var(--border);border-left:2px solid var(--habit);
+border-radius:0 var(--radius) var(--radius) 0;padding:13px 15px;margin-bottom:12px;font-size:13px;line-height:1.55;color:var(--text2)}
+.verdict b{color:var(--text);font-weight:500}
+
+.dlt{font-family:var(--mono);font-size:10px;padding:1px 5px;border-radius:4px;margin-left:5px;white-space:nowrap}
+.dlt.up{background:var(--ok-dim);color:var(--ok-text)}
+.dlt.dn{background:var(--err-dim);color:var(--err-text)}
+.dlt.eq{background:var(--bg3);color:var(--text3)}
+
+.note{font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:9px;line-height:1.5}
+
+.segbar{display:flex;height:26px;border-radius:var(--radius-sm);overflow:hidden;background:var(--bg3)}
+.segbar div{display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:#0b0b0b}
+
+.adh{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+.adh:last-child{margin-bottom:0}
+.adh-n{font-size:12px;color:var(--text2);width:96px;flex-shrink:0}
+.adh-t{flex:1;height:7px;background:var(--bg3);border-radius:4px;overflow:hidden}
+.adh-f{height:100%;border-radius:4px}
+.adh-v{font-family:var(--mono);font-size:11px;color:var(--text2);width:52px;text-align:right;flex-shrink:0}
+
+.iv{border-top:1px solid var(--border);padding:11px 0;display:flex;align-items:flex-start;gap:9px}
+.iv:first-child{border-top:none;padding-top:0}
+.iv-d{width:7px;height:7px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.iv-b{flex:1;min-width:0}
+.iv-n{font-size:12.5px;color:var(--text)}
+.iv-m{font-size:10.5px;color:var(--text3);font-family:var(--mono);margin-top:3px;line-height:1.5}
+.iv-s{font-size:9.5px;font-family:var(--mono);padding:2px 6px;border-radius:4px;flex-shrink:0}
+
+.dr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.dr:last-child{margin-bottom:0}
+.dr-n{font-size:11.5px;color:var(--text2);width:88px;flex-shrink:0}
+.dr-t{flex:1;height:22px;background:var(--bg3);border-radius:4px;position:relative;overflow:hidden}
+.dr-f{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:7px;
+font-family:var(--mono);font-size:10px;color:#0b0b0b}
+.dr-c{font-family:var(--mono);font-size:10px;color:var(--text3);width:40px;text-align:right;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -233,36 +277,77 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 
   <!-- ══ VISTA HÁBITOS ══ -->
   <div class="view on" id="v-hab">
+    <div class="hz" id="hz"></div>
+    <div class="verdict" id="verdict"></div>
     <div id="alerts-hab"></div>
-    <div class="sec">Últimos 7 días</div>
     <div class="grid2" id="hab-kpis"></div>
+
     <div class="sec">Sueño</div>
     <div class="chart-card">
-      <div class="cc-hdr"><span class="cc-title">Horas y calidad</span><span class="cc-badge h">30 días</span></div>
+      <div class="cc-hdr"><span class="cc-title">Horas y calidad</span><span class="cc-badge h" id="bd-sueno"></span></div>
       <div class="chart-wrap"><canvas id="ch-sueno"></canvas></div>
     </div>
+    <div class="chart-card" id="card-garmin" style="display:none">
+      <div class="cc-hdr"><span class="cc-title">Garmin · recuperación</span><span class="cc-badge">Sleep Score · Body Battery · HRV</span></div>
+      <div class="chart-wrap"><canvas id="ch-garmin"></canvas></div>
+    </div>
+
     <div class="sec">Energía y ánimo</div>
     <div class="chart-card">
       <div class="cc-hdr"><span class="cc-title">Energía · Ánimo</span><span class="cc-badge h">escala 1–5</span></div>
       <div class="chart-wrap"><canvas id="ch-energia"></canvas></div>
     </div>
+
+    <div class="sec">Nutrición</div>
+    <div class="chart-card">
+      <div class="cc-hdr"><span class="cc-title">Proteína estimada por día</span><span class="cc-badge h" id="bd-prot"></span></div>
+      <div class="chart-wrap"><canvas id="ch-prot"></canvas></div>
+      <div class="note" id="nota-prot"></div>
+    </div>
+    <div class="chart-card">
+      <div class="cc-hdr"><span class="cc-title">Calidad de la alimentación</span><span class="cc-badge">distribución</span></div>
+      <div class="segbar" id="seg-calidad"></div>
+      <div class="grid2" style="margin-top:12px" id="nutri-kpis"></div>
+    </div>
+
+    <div class="sec">Alcohol</div>
+    <div class="chart-card">
+      <div class="cc-hdr"><span class="cc-title">Unidades por día</span><span class="cc-badge" id="bd-alc"></span></div>
+      <div class="chart-wrap"><canvas id="ch-alc"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="cc-hdr"><span class="cc-title">Efecto sobre el día siguiente</span><span class="cc-badge">dosis-respuesta</span></div>
+      <div id="corr-dosis"></div>
+    </div>
+
     <div class="sec">Actividad física</div>
     <div class="chart-card">
-      <div class="cc-hdr"><span class="cc-title">Minutos por día</span><span class="cc-badge h">30 días</span></div>
+      <div class="cc-hdr"><span class="cc-title">Minutos por día</span><span class="cc-badge h" id="bd-act"></span></div>
       <div class="chart-wrap"><canvas id="ch-act"></canvas></div>
+    </div>
+    <div class="chart-card" id="card-z2" style="display:none">
+      <div class="cc-hdr"><span class="cc-title">Zona 2 por semana</span><span class="cc-badge">objetivo 90–135 min</span></div>
+      <div class="chart-wrap"><canvas id="ch-z2"></canvas></div>
     </div>
     <div class="chart-card">
       <div class="cc-hdr"><span class="cc-title">Consistencia</span><span class="cc-badge h">5 semanas</span></div>
       <div class="hmlb"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
       <div class="hm" id="heatmap"></div>
     </div>
-    <div class="sec">Correlaciones</div>
+
+    <div class="sec">Adherencia</div>
     <div class="chart-card">
-      <div class="cc-hdr"><span class="cc-title">Alcohol → sueño día siguiente</span><span class="cc-badge">patrón</span></div>
-      <div class="corr-grid" id="corr-alc"></div>
+      <div class="cc-hdr"><span class="cc-title">Suplementos</span><span class="cc-badge h" id="bd-sup"></span></div>
+      <div id="adh-sup"></div>
     </div>
     <div class="chart-card">
-      <div class="cc-hdr"><span class="cc-title">Síntomas frecuentes</span><span class="cc-badge h">mes</span></div>
+      <div class="cc-hdr"><span class="cc-title">Intervenciones activas</span><span class="cc-badge">estado y control</span></div>
+      <div id="adh-int"></div>
+    </div>
+
+    <div class="sec">Síntomas</div>
+    <div class="chart-card">
+      <div class="cc-hdr"><span class="cc-title">Frecuencia</span><span class="cc-badge h" id="bd-sint"></span></div>
       <div class="chart-wrap" style="height:120px"><canvas id="ch-sint"></canvas></div>
     </div>
   </div>
@@ -322,6 +407,7 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 const WORKER_URL = WORKER;
 let REGISTROS = [];
 let LAB_RESULTS = [];
+let INTERVENCIONES = [];
 let chartsH = {};
 let chartsL = {};
 let currentSub = 0;
@@ -469,7 +555,7 @@ window.addEventListener('load', () => {
   const now = new Date();
   const dias=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
   const meses=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  document.getElementById('hdr-meta').textContent = `${dias[now.getDay()]} ${now.getDate()} ${meses[now.getMonth()]} · Dashboard`;
+  document.getElementById('hdr-meta').textContent = `${dias[now.getDay()]} ${now.getDate()} ${meses[now.getMonth()]} · Dashboard v2`;
   syncAll();
 });
 
@@ -477,8 +563,34 @@ window.addEventListener('load', () => {
 async function syncAll() {
   const dot = document.getElementById('sdot');
   dot.className = 'sdot spin';
-  await Promise.all([syncRegistros(), syncLabs()]);
+  await Promise.all([syncRegistros(), syncLabs(), syncIntervenciones()]);
   dot.className = 'sdot ok';
+}
+
+async function syncIntervenciones() {
+  try {
+    const r = await fetch(`${WORKER_URL}/intervenciones`, {signal:AbortSignal.timeout(8000)});
+    const d = await r.json();
+    if (d.results) {
+      INTERVENCIONES = d.results.map(p => {
+        const pr = p.properties;
+        return {
+          nombre: pr['Intervención']?.title?.[0]?.plain_text || '',
+          categoria: pr['Categoría']?.select?.name || '',
+          estado: pr['Estado']?.select?.name || '',
+          inicio: pr['Fecha inicio']?.date?.start || null,
+          control: pr['Fecha control']?.date?.start || null,
+          metrica: pr['Métrica de control']?.rich_text?.[0]?.plain_text || '',
+          prioridad: pr['Prioridad']?.select?.name || '',
+        };
+      }).filter(i => i.nombre);
+      localStorage.setItem('cache_int', JSON.stringify(INTERVENCIONES));
+    }
+  } catch {
+    const c = localStorage.getItem('cache_int');
+    if (c) INTERVENCIONES = JSON.parse(c);
+  }
+  if (REGISTROS.length) renderAdherencia();
 }
 
 async function syncRegistros() {
@@ -520,20 +632,102 @@ async function syncLabs() {
   renderLab();
 }
 
+// ══ VOCABULARIO DE ALIMENTOS ══════════════════════════════════════════════════
+// Mismos factores que la app de registro. Sirven para dos cosas: leer los
+// registros nuevos y RECONSTRUIR los históricos, que solo guardaban texto libre.
+// [claves de búsqueda, proteína/100g, grasa/100g, carbos/100g]
+const ALIMENTOS = [
+  [['higado','hígado'],21,4,4],
+  [['solomito','res','ternera','carne'],21,7,0],
+  [['cañon','cañón','cerdo','chicharron','chicharrón','lomo'],25,8,0],
+  [['chorizo','salchich'],14,26,2],
+  [['tocino','tocineta'],12,40,1],
+  [['pollo','pechuga','contramuslo','pavo'],28,5,0],
+  [['salmon','salmón'],22,13,0],
+  [['atun','atún'],25,1,0],
+  [['tilapia','pescado','trucha'],21,2,0],
+  [['camaron','camarón','marisco'],24,1,1],
+  [['huevo','clara'],12.6,9.5,0.7],
+  [['lenteja','frijol','garbanzo','legumbre'],9,0.4,20],
+  [['kefir','kéfir','yogur'],3.5,2,4],
+  [['queso','cuajada'],20,20,2],
+  [['hamburguesa'],17,15,10],
+];
+
+// Estima proteína a partir del texto libre y los gramos registrados.
+// Si el texto menciona varios alimentos, promedia sus factores.
+function estimarDeTexto(texto, gramos) {
+  if (!texto || !gramos) return null;
+  const t = texto.toLowerCase();
+  const hits = ALIMENTOS.filter(a => a[0].some(k => t.includes(k)));
+  if (!hits.length) return null;
+  const f = hits.reduce((s,a) => s + a[1], 0) / hits.length;
+  return gramos * f / 100;
+}
+
 function parseReg(p) {
   try {
     const pr = p.properties;
     const am = {'Muy bien':5,'Bien':4,'Neutral':3,'Mal':2};
+    const num = k => pr[k]?.number ?? null;
+    const txt = k => pr[k]?.rich_text?.[0]?.plain_text || '';
+    const sel = k => pr[k]?.select?.name || null;
+    const mul = k => pr[k]?.multi_select?.map(s=>s.name) || [];
+
+    // Gramos de alimento proteico: existe en TODA la historia (98% de cobertura).
+    // Es el puente que permite comparar registros viejos y nuevos.
+    const gDes = num('Desayuno proteína g'), gAlm = num('Almuerzo proteína g'),
+          gCen = num('Cena proteína g'), gSna = num('Snack proteína g');
+    const gramosProt = [gDes,gAlm,gCen,gSna].reduce((s,v)=>s+(v||0),0) || null;
+
+    // Proteína real: los registros nuevos la traen calculada; los viejos se
+    // reconstruyen desde el texto libre y se marcan como estimados.
+    let prot = num('Proteína total g'), protEst = false;
+    if (prot == null) {
+      const partes = [
+        estimarDeTexto(txt('Desayuno proteína'), gDes),
+        estimarDeTexto(txt('Almuerzo proteína'), gAlm),
+        estimarDeTexto(txt('Cena proteína'), gCen),
+      ].filter(v => v != null);
+      if (partes.length) { prot = Math.round(partes.reduce((a,b)=>a+b,0)); protEst = true; }
+    }
+
+    // Carbohidratos: el esquema nuevo usa un select por comida; el viejo,
+    // multi-selects con otros nombres. Se unifican para poder medir gluten.
+    const carbos = [sel('Desayuno carbo'), sel('Almuerzo carbo'), sel('Cena carbo'), sel('Snack carbo')]
+      .filter(Boolean)
+      .concat(mul('Desayuno carbs'), mul('Almuerzo base'), mul('Cena acompañantes'));
+    const conGluten = carbos.some(c => /^(arepa|pan de masa madre|galletas saltinas)$/i.test(c));
+
     return {
       fecha: pr['Fecha']?.title?.[0]?.text?.content||'',
-      sueno_h: pr['Sueño duración h']?.number||null,
-      sueno_q: parseInt(pr['Sueño calidad']?.select?.name)||null,
-      energia: parseInt(pr['Energía nivel']?.select?.name)||null,
-      animo: am[pr['Ánimo']?.select?.name]||null,
-      act_min: pr['Actividad duración min']?.number||null,
-      act_tipo: pr['Actividad tipo']?.multi_select?.map(s=>s.name)||[],
-      sintomas: pr['Síntomas']?.multi_select?.map(s=>s.name)||[],
+      sueno_h: num('Sueño duración h'),
+      sueno_q: parseInt(sel('Sueño calidad'))||null,
+      energia: parseInt(sel('Energía nivel'))||null,
+      animo: am[sel('Ánimo')]||null,
+      act_min: num('Actividad duración min'),
+      act_tipo: mul('Actividad tipo'),
+      sintomas: mul('Síntomas'),
       alcohol: pr['Alcohol']?.checkbox||false,
+      // ── Campos que el dashboard ignoraba ──
+      alcohol_u: num('Alcohol unidades'),
+      alcohol_tipo: mul('Alcohol tipo'),
+      crossrope: num('Crossrope saltos'),
+      zona2: num('Minutos zona 2'),
+      fc_media: num('FC media'),
+      fc_reposo: num('Garmin FC reposo'),
+      hrv: num('Garmin HRV nocturna'),
+      sleep_score: num('Garmin Sleep Score'),
+      body_battery: num('Garmin Body Battery despertar'),
+      suplementos: mul('Suplementos tomados'),
+      cheatmeal: pr['Cheatmeal']?.checkbox||false,
+      azucar: pr['Azúcar añadida']?.checkbox||false,
+      alim_calidad: sel('Alimentación calidad'),
+      bloque: sel('Bloque plan'),
+      gramos_prot: gramosProt,
+      prot, prot_est: protEst,
+      kcal: num('Kcal estimadas'),
+      gluten: conGluten,
     };
   } catch { return null; }
 }
@@ -932,71 +1126,319 @@ function renderTrend() {
 
 // ══ RENDER HÁBITOS ════════════════════════════════════════════════════════════
 function renderHabitos() {
+  renderHz();
   if (!REGISTROS.length) return;
+  renderVerdict();
   renderHabAlerts();
   renderHabKPIs();
+  renderNutri();
+  renderAlcohol();
+  renderAdherencia();
   renderHabCharts();
 }
 
-function last7() { return REGISTROS.slice(-7); }
-function last30() { return REGISTROS.slice(-30); }
+// Una frase que responde "¿cómo voy?" antes de mirar una sola gráfica.
+function renderVerdict(){
+  const r = rango(); if (!r.length) return;
+  const s = avg(r,'sueno_h'), e = avg(r,'energia');
+  const act = r.filter(x=>x.act_min>0).length;
+  const pct = Math.round(act/r.length*100);
+  const uds = suma(r,'alcohol_u');
+  const dAlc = r.filter(x=>x.alcohol).length;
+  const cob = Math.round(r.filter(x=>x.energia!=null).length/r.length*100);
+  document.getElementById('verdict').innerHTML =
+    `En <b>${etiquetaHz()}</b>: sueño <b>${s} h</b>, energía <b>${e}/5</b>, `
+    + `actividad <b>${pct}%</b> de los días. `
+    + (dAlc ? `Alcohol en <b>${dAlc}</b> día${dAlc>1?'s':''} · <b>${uds}</b> unidades.` : `Sin alcohol registrado.`)
+    + (cob < 90 ? ` <span style="color:var(--warn-text)">Cobertura de registro ${cob}%.</span>` : '');
+}
+
+// ── Horizonte ─────────────────────────────────────────────────────────────────
+// Antes 7 y 30 estaban escritos a mano. Ahora un solo estado gobierna todo.
+const HORIZONTES = [{d:7,t:'7d'},{d:30,t:'30d'},{d:90,t:'90d'},{d:180,t:'6m'},{d:0,t:'Todo'}];
+let HZ = parseInt(localStorage.getItem('hz') || '30');
+
+function setHz(d){
+  HZ = d; localStorage.setItem('hz', d);
+  renderHabitos();
+}
+function renderHz(){
+  document.getElementById('hz').innerHTML = HORIZONTES.map(h =>
+    `<div class="hzb${h.d===HZ?' on':''}" onclick="setHz(${h.d})">${h.t}</div>`).join('');
+}
+// Los registros vienen ordenados ascendente por fecha.
+function rango(){ return HZ ? REGISTROS.slice(-HZ) : REGISTROS.slice(); }
+function rangoPrev(){
+  if (!HZ) return [];
+  const n = REGISTROS.length;
+  return REGISTROS.slice(Math.max(0, n-HZ*2), Math.max(0, n-HZ));
+}
+const etiquetaHz = () => HZ ? `${HZ} días` : `${REGISTROS.length} registros`;
+
 function avg(arr,k) { const v=arr.map(r=>r[k]).filter(v=>v!=null); return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):'—'; }
+const suma = (arr,k) => arr.reduce((s,r)=>s+(r[k]||0),0);
+
+// Con horizontes largos las gráficas diarias se saturan: se agrupan por semana.
+const agrupar = () => HZ === 0 || HZ > 60;
+
+function serie(rows, fn, modo='avg'){
+  if (!agrupar()) return { lbl: rows.map(r=>r.fecha.slice(5)), val: rows.map(fn) };
+  const sem = new Map();
+  rows.forEach(r => {
+    const d = new Date(r.fecha + 'T12:00:00');
+    const j = new Date(d); j.setDate(d.getDate() - ((d.getDay()+6)%7));
+    const k = j.toISOString().slice(5,10);
+    if (!sem.has(k)) sem.set(k, []);
+    sem.get(k).push(fn(r));
+  });
+  const lbl = [...sem.keys()], val = lbl.map(k => {
+    const v = sem.get(k).filter(x => x != null);
+    if (!v.length) return null;
+    return modo === 'sum' ? v.reduce((a,b)=>a+b,0) : v.reduce((a,b)=>a+b,0)/v.length;
+  });
+  return { lbl, val };
+}
+
+// Compara el período actual contra el anterior de igual longitud.
+function delta(k, decimales=1, masEsMejor=true){
+  const a = rango().map(r=>r[k]).filter(v=>v!=null);
+  const b = rangoPrev().map(r=>r[k]).filter(v=>v!=null);
+  if (!a.length || !b.length) return '';
+  const ma = a.reduce((x,y)=>x+y,0)/a.length, mb = b.reduce((x,y)=>x+y,0)/b.length;
+  const d = ma - mb;
+  if (Math.abs(d) < 0.05) return `<span class="dlt eq">=</span>`;
+  const bueno = masEsMejor ? d > 0 : d < 0;
+  return `<span class="dlt ${bueno?'up':'dn'}">${d>0?'+':''}${d.toFixed(decimales)}</span>`;
+}
 
 function renderHabAlerts() {
-  const r7=last7(); const alerts=[];
-  const s=parseFloat(avg(r7,'sueno_h'));
-  if(!isNaN(s)&&s<6) alerts.push({t:'err',m:`Sueño bajo esta semana (${s}h). Con apnea la calidad se ve más afectada.`});
-  const alc=r7.filter(r=>r.alcohol).length;
-  if(alc>=2) alerts.push({t:'warn',m:`${alc} días con alcohol esta semana → impacto en sueño y energía.`});
-  const act=r7.filter(r=>r.act_min>0).length;
-  if(act<3) alerts.push({t:'warn',m:`Solo ${act} días de actividad esta semana. Objetivo: 5 días.`});
+  const r=rango(); const alerts=[];
+  const s=parseFloat(avg(r,'sueno_h'));
+  if(!isNaN(s)&&s<6) alerts.push({t:'err',m:`Sueño promedio de ${s} h en ${etiquetaHz()}. Con apnea la calidad se ve más afectada.`});
+  const pctAct=r.filter(x=>x.act_min>0).length/r.length;
+  if(pctAct<0.6) alerts.push({t:'warn',m:`Actividad en ${Math.round(pctAct*100)}% de los días. Objetivo: 70%.`});
+  const uds=suma(r,'alcohol_u'), sem=r.length/7;
+  if(sem>=1 && uds/sem>14) alerts.push({t:'warn',m:`${Math.round(uds/sem)} unidades de alcohol por semana en promedio.`});
+  const z2=suma(r,'zona2');
+  if(z2>0 && sem>=1 && z2/sem<90) alerts.push({t:'warn',m:`Zona 2: ${Math.round(z2/sem)} min/semana. El objetivo para mover el HDL son 90–135.`});
   document.getElementById('alerts-hab').innerHTML=alerts.map(a=>`<div class="alert ${a.t==='warn'?'w':''}"><i>${a.t==='err'?'⚠️':'💡'}</i><div>${a.m}</div></div>`).join('');
 }
 
 function renderHabKPIs() {
-  const r7=last7();
-  const avgS=avg(r7,'sueno_h'); const act=r7.filter(r=>r.act_min>0).length; const avgE=avg(r7,'energia');
+  const r=rango();
+  const avgS=avg(r,'sueno_h'), avgE=avg(r,'energia');
+  const act=r.filter(x=>x.act_min>0).length, pctA=Math.round(act/r.length*100);
+  const uds=suma(r,'alcohol_u');
   const sS=avgS!=='—'?(parseFloat(avgS)>=7?'kh':parseFloat(avgS)>=6?'kw':'ke'):'kh';
-  const aS=act>=5?'kh':act>=3?'kw':'ke'; const eS=avgE!=='—'?(parseFloat(avgE)>=4?'kh':parseFloat(avgE)>=3?'kw':'ke'):'kh';
+  const aS=pctA>=70?'kh':pctA>=50?'kw':'ke';
+  const eS=avgE!=='—'?(parseFloat(avgE)>=4?'kh':parseFloat(avgE)>=3?'kw':'ke'):'kh';
+  const sem=Math.max(1, r.length/7), udsSem=uds/sem;
+  const uS=udsSem<=8?'kh':udsSem<=14?'kw':'ke';
+  const c=x=>x==='kh'?'ch':x==='kw'?'cw':'ce';
   document.getElementById('hab-kpis').innerHTML=`
-    <div class="kpi ${sS}"><div class="kpi-lbl">Sueño prom.</div><div class="kpi-val ${sS==='kh'?'ch':sS==='kw'?'cw':'ce'}">${avgS}</div><div class="kpi-sub">h/noche · cal ${avg(r7,'sueno_q')}/5</div></div>
-    <div class="kpi ${aS}"><div class="kpi-lbl">Días activo</div><div class="kpi-val ${aS==='kh'?'ch':aS==='kw'?'cw':'ce'}">${act}</div><div class="kpi-sub">de 7 · obj: 5/sem</div></div>
-    <div class="kpi ${eS}"><div class="kpi-lbl">Energía</div><div class="kpi-val ${eS==='kh'?'ch':eS==='kw'?'cw':'ce'}">${avgE}</div><div class="kpi-sub">escala 1–5 · 7 días</div></div>
-    <div class="kpi kh"><div class="kpi-lbl">Registros</div><div class="kpi-val ch">${REGISTROS.length}</div><div class="kpi-sub">total acumulado</div></div>`;
+    <div class="kpi ${sS}"><div class="kpi-lbl">Sueño prom.</div><div class="kpi-val ${c(sS)}">${avgS}${delta('sueno_h')}</div><div class="kpi-sub">h/noche · cal ${avg(r,'sueno_q')}/5</div></div>
+    <div class="kpi ${aS}"><div class="kpi-lbl">Días activo</div><div class="kpi-val ${c(aS)}">${pctA}%</div><div class="kpi-sub">${act} de ${r.length} · obj: 70%</div></div>
+    <div class="kpi ${eS}"><div class="kpi-lbl">Energía</div><div class="kpi-val ${c(eS)}">${avgE}${delta('energia')}</div><div class="kpi-sub">escala 1–5</div></div>
+    <div class="kpi ${uS}"><div class="kpi-lbl">Alcohol</div><div class="kpi-val ${c(uS)}">${Math.round(udsSem)}</div><div class="kpi-sub">uds/semana · límite OMS 14</div></div>`;
+}
+
+// ── Nutrición ─────────────────────────────────────────────────────────────────
+function renderNutri(){
+  const r=rango();
+  const conProt=r.filter(x=>x.prot!=null);
+  const est=conProt.filter(x=>x.prot_est).length;
+  const metaProt = { 'B1':175, 'B2':170, 'B3':165 };
+  const meta = x => metaProt[(x.bloque||'B2').slice(0,2)] || 170;
+
+  document.getElementById('bd-prot').textContent = etiquetaHz();
+  document.getElementById('nota-prot').innerHTML = est
+    ? `${est} de ${conProt.length} días son estimados desde el texto libre de los registros anteriores al 26 de julio. La línea punteada marca la meta.`
+    : `Calculado desde los componentes registrados. La línea punteada marca la meta.`;
+
+  if(chartsH.p) chartsH.p.destroy();
+  const cp=document.getElementById('ch-prot')?.getContext('2d');
+  if(cp){
+    const s=serie(r, x=>x.prot);
+    const m=serie(r, x=>meta(x));
+    chartsH.p=new Chart(cp,{type:'bar',data:{labels:s.lbl,datasets:[
+      {label:'Proteína g',data:s.val,backgroundColor:s.val.map((v,i)=>v==null?'transparent':(v>=m.val[i]*0.9?'rgba(29,158,117,0.7)':'rgba(186,117,23,0.7)')),borderRadius:3},
+      {label:'Meta',data:m.val,type:'line',borderColor:'#55526a',borderDash:[4,3],borderWidth:1.2,pointRadius:0,fill:false}
+    ]},options:{...CHART_OPT}});
+  }
+
+  // Distribución de calidad
+  const cal={'Bastante saludable':0,'Regular':0,'Poco saludable':0};
+  r.forEach(x=>{ if(x.alim_calidad && cal[x.alim_calidad]!==undefined) cal[x.alim_calidad]++; });
+  const tot=Object.values(cal).reduce((a,b)=>a+b,0);
+  const col={'Bastante saludable':'#1D9E75','Regular':'#BA7517','Poco saludable':'#993C1D'};
+  document.getElementById('seg-calidad').innerHTML = tot
+    ? Object.keys(cal).filter(k=>cal[k]).map(k=>
+        `<div style="width:${cal[k]/tot*100}%;background:${col[k]}">${Math.round(cal[k]/tot*100)}%</div>`).join('')
+    : `<div style="width:100%;background:var(--bg3);color:var(--text3)">sin datos</div>`;
+
+  const gl=r.filter(x=>x.gluten).length, ch=r.filter(x=>x.cheatmeal).length, az=r.filter(x=>x.azucar).length;
+  const kcal=r.filter(x=>x.kcal!=null);
+  document.getElementById('nutri-kpis').innerHTML=`
+    <div class="kpi ${gl/r.length<0.3?'kh':'kw'}"><div class="kpi-lbl">Días con gluten</div><div class="kpi-val ${gl/r.length<0.3?'ch':'cw'}">${gl}</div><div class="kpi-sub">de ${r.length} · arepa, pan, saltinas</div></div>
+    <div class="kpi kh"><div class="kpi-lbl">Kcal estimadas</div><div class="kpi-val ch">${kcal.length?Math.round(kcal.reduce((a,b)=>a+b.kcal,0)/kcal.length):'—'}</div><div class="kpi-sub">${kcal.length?'promedio/día':'desde 26 jul'}</div></div>
+    <div class="kpi kh"><div class="kpi-lbl">Cheatmeal</div><div class="kpi-val ch">${ch}</div><div class="kpi-sub">días en el período</div></div>
+    <div class="kpi kh"><div class="kpi-lbl">Azúcar añadida</div><div class="kpi-val ch">${az}</div><div class="kpi-sub">días en el período</div></div>`;
+}
+
+// ── Alcohol ───────────────────────────────────────────────────────────────────
+function renderAlcohol(){
+  const r=rango();
+  const uds=suma(r,'alcohol_u');
+  document.getElementById('bd-alc').textContent=`${uds} uds · ${etiquetaHz()}`;
+
+  if(chartsH.al) chartsH.al.destroy();
+  const ca=document.getElementById('ch-alc')?.getContext('2d');
+  if(ca){
+    const s=serie(r, x=>x.alcohol_u||0, 'sum');
+    chartsH.al=new Chart(ca,{type:'bar',data:{labels:s.lbl,datasets:[{data:s.val,
+      backgroundColor:s.val.map(v=>v===0?'rgba(85,82,106,0.25)':v<=3?'rgba(186,117,23,0.6)':'rgba(153,60,29,0.8)'),borderRadius:3}]},
+      options:{...CHART_OPT}});
+  }
+
+  // Dosis-respuesta: qué pasa al día siguiente según cuánto se bebió.
+  const cubos=[{n:'Sin alcohol',f:v=>v===0},{n:'1–3 uds',f:v=>v>0&&v<=3},{n:'4–8 uds',f:v=>v>3&&v<=8},{n:'Más de 8',f:v=>v>8}];
+  const filas=cubos.map(c=>{
+    const dias=r.filter(x=>c.f(x.alcohol_u||0));
+    const sig=dias.map(x=>{const i=REGISTROS.indexOf(x);return REGISTROS[i+1];}).filter(Boolean);
+    const q=sig.map(x=>x.sueno_q).filter(v=>v!=null);
+    const e=sig.map(x=>x.energia).filter(v=>v!=null);
+    return {n:c.n,dias:dias.length,
+      q:q.length?(q.reduce((a,b)=>a+b,0)/q.length):null,
+      e:e.length?(e.reduce((a,b)=>a+b,0)/e.length):null};
+  }).filter(f=>f.dias>0);
+
+  document.getElementById('corr-dosis').innerHTML = filas.length ? filas.map(f=>{
+    const v=f.q??0, pct=v/5*100;
+    const col=v>=4?'#1D9E75':v>=3?'#BA7517':'#993C1D';
+    return `<div class="dr"><div class="dr-n">${f.n}</div>
+      <div class="dr-t"><div class="dr-f" style="width:${Math.max(pct,18)}%;background:${col}">${f.q?f.q.toFixed(1)+'/5':'—'}</div></div>
+      <div class="dr-c">${f.dias}d</div></div>`;
+  }).join('') + `<div class="note">Calidad de sueño de la noche siguiente, según las unidades del día. El número de la derecha es cuántos días entran en cada grupo.</div>`
+    : `<div class="note">Sin datos suficientes en este período.</div>`;
+}
+
+// ── Adherencia ────────────────────────────────────────────────────────────────
+function renderAdherencia(){
+  const r=rango();
+  document.getElementById('bd-sup').textContent=etiquetaHz();
+  const lista=['Hierro (Anemidox)','Magnesio','Omega-3','Creatina','Vitamina C'];
+  const desde=r.filter(x=>x.suplementos.length>0).length;
+  document.getElementById('adh-sup').innerHTML = lista.map(s=>{
+    const n=r.filter(x=>x.suplementos.includes(s)).length;
+    const pct=Math.round(n/r.length*100);
+    const col=pct>=80?'#1D9E75':pct>=40?'#BA7517':'#993C1D';
+    return `<div class="adh"><div class="adh-n">${s.replace(' (Anemidox)','')}</div>
+      <div class="adh-t"><div class="adh-f" style="width:${pct}%;background:${col}"></div></div>
+      <div class="adh-v">${n}/${r.length}</div></div>`;
+  }).join('') + (desde===0
+    ? `<div class="note">El campo de suplementos existe desde el 26 de julio. Los días anteriores no lo tenían, así que aparecen en cero.</div>`
+    : `<div class="note">Días con el suplemento marcado sobre el total del período.</div>`);
+
+  const cont=document.getElementById('adh-int');
+  if(!INTERVENCIONES.length){ cont.innerHTML=`<div class="note">Sin datos de intervenciones.</div>`; return; }
+  const colE={'Haciendo':'#1D9E75','Programado':'#7F77DD','Intermitente':'#BA7517',
+              'No iniciado':'#55526a','No verificable':'#8a6a4a','Descartado':'#993C1D','Hecho':'#7F77DD'};
+  const orden={'Haciendo':0,'Programado':1,'Intermitente':2,'No iniciado':3,'No verificable':4,'Hecho':5,'Descartado':6};
+  cont.innerHTML = INTERVENCIONES
+    .filter(i=>i.estado!=='Descartado')
+    .sort((a,b)=>(orden[a.estado]??9)-(orden[b.estado]??9))
+    .map(i=>{
+      const col=colE[i.estado]||'#55526a';
+      let meta=i.metrica||'';
+      if(i.control){
+        const d=Math.round((new Date(i.control)-new Date())/86400000);
+        meta += (meta?' · ':'') + (d>0?`control en ${d} días`:`control vencido`);
+      }
+      return `<div class="iv"><div class="iv-d" style="background:${col}"></div>
+        <div class="iv-b"><div class="iv-n">${i.nombre}</div><div class="iv-m">${meta||'—'}</div></div>
+        <div class="iv-s" style="background:${col}22;color:${col}">${i.estado}</div></div>`;
+    }).join('');
 }
 
 function renderHabCharts() {
-  const r30=last30(); const lbl=r30.map(r=>r.fecha.slice(5));
+  const r30=rango(); const lbl=serie(r30,x=>x.fecha).lbl;
+  ['bd-sueno','bd-act','bd-sint'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=etiquetaHz();});
   const ld=(d,c,t)=>({label:t,data:d,borderColor:c,backgroundColor:c+'18',borderWidth:1.5,pointRadius:1.5,tension:0.4,fill:true,spanGaps:true});
+  const leyenda={...CHART_OPT.plugins,legend:{display:true,labels:{color:'#9994b0',font:{family:'DM Mono',size:8},boxWidth:8}}};
+
   // Sueño
   if(chartsH.s)chartsH.s.destroy();
   const cs=document.getElementById('ch-sueno')?.getContext('2d');
-  if(cs)chartsH.s=new Chart(cs,{type:'bar',data:{labels:lbl,datasets:[{label:'Horas',data:r30.map(r=>r.sueno_h),backgroundColor:r30.map(r=>r.sueno_h>=7?'rgba(29,158,117,0.7)':r.sueno_h>=6?'rgba(186,117,23,0.7)':'rgba(153,60,29,0.7)'),borderRadius:3},{label:'Calidad',data:r30.map(r=>r.sueno_q),type:'line',borderColor:'#c4a8ff',backgroundColor:'transparent',borderWidth:1.5,pointRadius:1.5,tension:0.3,yAxisID:'y2'}]},options:{...CHART_OPT,plugins:{...CHART_OPT.plugins,legend:{display:true,labels:{color:'#9994b0',font:{family:'DM Mono',size:8},boxWidth:8}}},scales:{x:CHART_OPT.scales.x,y:{...CHART_OPT.scales.y,min:0,max:10},y2:{position:'right',grid:{drawOnChartArea:false},ticks:{color:'#55526a',font:{family:'DM Mono',size:8}},min:0,max:5}}}});
+  if(cs){
+    const h=serie(r30,x=>x.sueno_h), q=serie(r30,x=>x.sueno_q);
+    chartsH.s=new Chart(cs,{type:'bar',data:{labels:h.lbl,datasets:[
+      {label:'Horas',data:h.val,backgroundColor:h.val.map(v=>v>=7?'rgba(29,158,117,0.7)':v>=6?'rgba(186,117,23,0.7)':'rgba(153,60,29,0.7)'),borderRadius:3},
+      {label:'Calidad',data:q.val,type:'line',borderColor:'#c4a8ff',backgroundColor:'transparent',borderWidth:1.5,pointRadius:1.5,tension:0.3,yAxisID:'y2'}
+    ]},options:{...CHART_OPT,plugins:leyenda,scales:{x:CHART_OPT.scales.x,y:{...CHART_OPT.scales.y,min:0,max:10},y2:{position:'right',grid:{drawOnChartArea:false},ticks:{color:'#55526a',font:{family:'DM Mono',size:8}},min:0,max:5}}}});
+  }
+
+  // Garmin: solo aparece si hay datos, para no mostrar una gráfica vacía.
+  const conG=r30.filter(x=>x.sleep_score!=null||x.body_battery!=null||x.hrv!=null);
+  document.getElementById('card-garmin').style.display = conG.length ? 'block' : 'none';
+  if(conG.length){
+    if(chartsH.g)chartsH.g.destroy();
+    const cg=document.getElementById('ch-garmin')?.getContext('2d');
+    if(cg){
+      const ss=serie(r30,x=>x.sleep_score), bb=serie(r30,x=>x.body_battery), hv=serie(r30,x=>x.hrv);
+      chartsH.g=new Chart(cg,{type:'line',data:{labels:ss.lbl,datasets:[
+        ld(ss.val,'#7ee8a2','Sleep Score'), ld(bb.val,'#4ba3e6','Body Battery'), ld(hv.val,'#c4a8ff','HRV')
+      ]},options:{...CHART_OPT,plugins:leyenda}});
+    }
+  }
+
   // Energía
   if(chartsH.e)chartsH.e.destroy();
   const ce=document.getElementById('ch-energia')?.getContext('2d');
-  if(ce)chartsH.e=new Chart(ce,{type:'line',data:{labels:lbl,datasets:[ld(r30.map(r=>r.energia),'#ffb86c','Energía'),ld(r30.map(r=>r.animo),'#c4a8ff','Ánimo')]},options:{...CHART_OPT,plugins:{...CHART_OPT.plugins,legend:{display:true,labels:{color:'#9994b0',font:{family:'DM Mono',size:8},boxWidth:8}}},scales:{x:CHART_OPT.scales.x,y:{...CHART_OPT.scales.y,min:1,max:5}}}});
+  if(ce){
+    const en=serie(r30,x=>x.energia), an=serie(r30,x=>x.animo);
+    chartsH.e=new Chart(ce,{type:'line',data:{labels:en.lbl,datasets:[ld(en.val,'#ffb86c','Energía'),ld(an.val,'#c4a8ff','Ánimo')]},
+      options:{...CHART_OPT,plugins:leyenda,scales:{x:CHART_OPT.scales.x,y:{...CHART_OPT.scales.y,min:1,max:5}}}});
+  }
+
   // Actividad
   if(chartsH.a)chartsH.a.destroy();
   const ca=document.getElementById('ch-act')?.getContext('2d');
-  if(ca)chartsH.a=new Chart(ca,{type:'bar',data:{labels:lbl,datasets:[{data:r30.map(r=>r.act_min||0),backgroundColor:r30.map(r=>{const t=r.act_tipo;if(t.includes('Cardio + HIIT'))return 'rgba(255,184,108,0.7)';if(t.includes('Fuerza'))return 'rgba(196,168,255,0.7)';if(t.includes('Natación'))return 'rgba(126,232,162,0.7)';return 'rgba(85,82,106,0.4)';}),borderRadius:3}]},options:{...CHART_OPT}});
-  // Heatmap
+  if(ca){
+    const ac=serie(r30,x=>x.act_min||0,'sum');
+    const color=x=>{const t=x.act_tipo;if(t.includes('Cardio + HIIT'))return 'rgba(255,184,108,0.7)';if(t.includes('Fuerza'))return 'rgba(196,168,255,0.7)';if(t.includes('Natación'))return 'rgba(126,232,162,0.7)';return 'rgba(85,82,106,0.4)';};
+    chartsH.a=new Chart(ca,{type:'bar',data:{labels:ac.lbl,datasets:[{data:ac.val,
+      backgroundColor:agrupar()?'rgba(126,232,162,0.6)':r30.map(color),borderRadius:3}]},options:{...CHART_OPT}});
+  }
+
+  // Zona 2 por semana, contra el objetivo del panel para mover el HDL.
+  const conZ=r30.filter(x=>x.zona2!=null);
+  document.getElementById('card-z2').style.display = conZ.length ? 'block' : 'none';
+  if(conZ.length){
+    const sem=new Map();
+    r30.forEach(x=>{
+      const d=new Date(x.fecha+'T12:00:00'); const j=new Date(d); j.setDate(d.getDate()-((d.getDay()+6)%7));
+      const k=j.toISOString().slice(5,10);
+      sem.set(k,(sem.get(k)||0)+(x.zona2||0));
+    });
+    if(chartsH.z)chartsH.z.destroy();
+    const cz=document.getElementById('ch-z2')?.getContext('2d');
+    const kl=[...sem.keys()], kv=kl.map(k=>sem.get(k));
+    if(cz)chartsH.z=new Chart(cz,{type:'bar',data:{labels:kl,datasets:[
+      {label:'Min zona 2',data:kv,backgroundColor:kv.map(v=>v>=90?'rgba(29,158,117,0.7)':'rgba(186,117,23,0.7)'),borderRadius:3},
+      {label:'Objetivo',data:kl.map(()=>90),type:'line',borderColor:'#55526a',borderDash:[4,3],borderWidth:1.2,pointRadius:0}
+    ]},options:{...CHART_OPT,plugins:leyenda}});
+  }
+
+  // Heatmap: siempre 5 semanas reales, independiente del horizonte elegido.
   const hm=document.getElementById('heatmap');
-  if(hm){const today=new Date();hm.innerHTML=Array.from({length:35},(_,i)=>{const d=new Date(today);d.setDate(today.getDate()-34+i);const k=d.toISOString().split('T')[0].slice(5);const rec=r30.find(r=>r.fecha.slice(5)===k);const m=rec?.act_min||0;const lv=m===0?'':m<30?'l1':m<40?'l2':m<50?'l3':'l4';return `<div class="hmc ${lv}"></div>`;}).join('');}
+  if(hm){const today=new Date();hm.innerHTML=Array.from({length:35},(_,i)=>{const d=new Date(today);d.setDate(today.getDate()-34+i);const k=d.toISOString().split('T')[0].slice(5);const rec=REGISTROS.find(r=>r.fecha.slice(5)===k);const m=rec?.act_min||0;const lv=m===0?'':m<30?'l1':m<40?'l2':m<50?'l3':'l4';return `<div class="hmc ${lv}"></div>`;}).join('');}
+
   // Síntomas
   const sf={};r30.forEach(r=>r.sintomas.filter(s=>s!=='Ninguno').forEach(s=>sf[s]=(sf[s]||0)+1));
   const sl=Object.keys(sf).sort((a,b)=>sf[b]-sf[a]);
   if(chartsH.sint)chartsH.sint.destroy();
   const csint=document.getElementById('ch-sint')?.getContext('2d');
   if(csint&&sl.length)chartsH.sint=new Chart(csint,{type:'bar',data:{labels:sl,datasets:[{data:sl.map(s=>sf[s]),backgroundColor:['rgba(255,107,138,0.7)','rgba(255,184,108,0.7)','rgba(196,168,255,0.7)','rgba(126,232,162,0.7)'],borderRadius:3}]},options:{...CHART_OPT,indexAxis:'y'}});
-  // Correlación alcohol
-  const withAlc=r30.filter(r=>r.alcohol).map(r=>{const i=REGISTROS.indexOf(r);return REGISTROS[i+1]?.sueno_q??null;}).filter(v=>v!=null);
-  const noAlc=r30.filter(r=>!r.alcohol).map(r=>{const i=REGISTROS.indexOf(r);return REGISTROS[i+1]?.sueno_q??null;}).filter(v=>v!=null);
-  const avgA=withAlc.length?(withAlc.reduce((a,b)=>a+b,0)/withAlc.length).toFixed(1):0;
-  const avgN=noAlc.length?(noAlc.reduce((a,b)=>a+b,0)/noAlc.length).toFixed(1):0;
-  document.getElementById('corr-alc').innerHTML=`
-    <div class="corr-c"><div class="corr-lbl">Con alcohol</div><div class="corr-v" style="color:var(--err-text)">${avgA}</div><div style="font-size:10px;color:var(--text3);font-family:var(--mono)">/5 calidad sueño</div></div>
-    <div class="corr-c"><div class="corr-lbl">Sin alcohol</div><div class="corr-v" style="color:var(--ok-text)">${avgN}</div><div style="font-size:10px;color:var(--text3);font-family:var(--mono)">/5 calidad sueño</div></div>`;
 }
 
 function filterByStatus(s) {
