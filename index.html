@@ -85,10 +85,12 @@ font-family:var(--font);font-size:11px;padding:4px 9px;cursor:pointer}
 .copy-btn:active{opacity:.6}
 .sub{font-size:10px;font-weight:500;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin:10px 0 5px}
 .sub:first-of-type{margin-top:0}
-.gram-row{display:flex;align-items:center;gap:8px;margin-top:6px}
-.gram-row span{font-size:13px;color:var(--text2);flex:1}
-.gram-row input{width:78px;text-align:right;padding:7px 9px}
-.gram-row small{font-size:11px;color:var(--text3)}
+.gram-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.gram-row .gcol{flex:1;min-width:0}
+.gname{font-size:13px;color:var(--text2)}
+.gest{font-size:11px;color:var(--text3);font-family:var(--mono);margin-top:2px}
+.gram-row input{width:72px;text-align:right;padding:7px 9px}
+.gram-row small{font-size:11px;color:var(--text3);width:12px}
 
 .macros{background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);padding:12px;margin-top:12px}
 .mline{display:flex;justify-content:space-between;font-size:12px;font-family:var(--mono);margin-bottom:3px}
@@ -226,6 +228,7 @@ opacity:0;transition:all .3s;pointer-events:none;z-index:200;white-space:nowrap}
           <div class="field"><div class="flabel">Minutos zona 2</div><input type="number" id="minutos_zona2" placeholder="min" inputmode="numeric"></div>
           <div class="field"><div class="flabel">Training Effect</div><input type="number" id="training_effect" placeholder="0–5" step="0.1" inputmode="decimal"></div>
         </div>
+        <div class="hint">Zona 2 son minutos de <strong>frecuencia cardíaca</strong>, no de potencia. En Garmin Connect: actividad → Tiempo en zonas → pestaña de FC. Training Effect es el aeróbico, con su decimal.</div>
         <div class="opt-l">Crossrope</div>
         <div class="row-2">
           <div class="field"><div class="flabel">Saltos</div><input type="number" id="crossrope_saltos" placeholder="0" inputmode="numeric"></div>
@@ -309,14 +312,27 @@ opacity:0;transition:all .3s;pointer-events:none;z-index:200;white-space:nowrap}
 
 <script>
 // ═══ Vocabulario de alimentos ══════════════════════════════════════════════════
-// [nombre, gramos por defecto, proteína/100g, grasa/100g, carbos/100g]
+// Proteínas: [nombre, cantidad por defecto, unidad, gramos por unidad, prot/100g, grasa/100g, carbos/100g]
+// Los alimentos contables se registran en unidades y el sistema convierte a gramos.
+// Calibración: 1 huevo = 55 g · 12.6 g prot/100 g → 3 huevos ≈ 20.8 g de proteína.
 const PROT = [
-  ["Huevos",120,13,10,1],["Carne molida",80,20,10,0],["Pechuga de pollo",150,31,4,0],
-  ["Solomito de res",250,22,5,0],["Cañón de cerdo",200,26,6,0],["Contramuslo de pollo",250,20,6,0],
-  ["Salmón",200,22,13,0],["Tilapia",250,21,2,0],["Camarones",250,24,1,1],
-  ["Hígado de res",250,21,4,4],["Lentejas / frijoles",200,9,0.4,20],["Tocineta",40,12,40,1],
-  ["Kéfir",240,3.5,2,4],["Queso cuajada",30,20,20,2],["Claras",100,11,0.2,1],
-  ["Proteína en polvo",30,80,3,5],["Otro",100,20,5,2],
+  ["Huevos",3,"u",55,12.6,9.5,0.7],
+  ["Carne molida",100,"g",1,20,10,0],
+  ["Pechuga de pollo",150,"g",1,31,4,0],
+  ["Solomito de res",250,"g",1,22,5,0],
+  ["Cañón de cerdo",200,"g",1,26,6,0],
+  ["Contramuslo de pollo",250,"g",1,20,6,0],
+  ["Salmón",200,"g",1,22,13,0],
+  ["Tilapia",250,"g",1,21,2,0],
+  ["Camarones",250,"g",1,24,1,1],
+  ["Hígado de res",250,"g",1,21,4,4],
+  ["Lentejas / frijoles",200,"g",1,9,0.4,20],
+  ["Tocineta",40,"g",1,12,40,1],
+  ["Kéfir",240,"g",1,3.5,2,4],
+  ["Queso cuajada",30,"g",1,20,20,2],
+  ["Claras",3,"u",33,11,0.2,1],
+  ["Proteína en polvo",30,"g",1,80,3,5],
+  ["Otro",100,"g",1,20,5,2],
 ];
 const PROT_SNACK = ["Kéfir","Huevos","Queso cuajada","Pechuga de pollo","Proteína en polvo","Otro"];
 
@@ -505,10 +521,18 @@ function renderComida(k){
   document.getElementById(`p-${k}`).innerHTML = L.prot.map(p =>
     `${ch(p[0], m.prot[p[0]] !== undefined)} onclick="togProt('${k}','${esc(p[0])}')">${p[0]}</button>`).join('');
 
-  document.getElementById(`g-${k}`).innerHTML = Object.keys(m.prot).map(n =>
-    `<div class="gram-row"><span>${n}</span>
-     <input type="number" inputmode="numeric" value="${m.prot[n]}" onchange="setGram('${k}','${esc(n)}',this.value)">
-     <small>g</small></div>`).join('');
+  document.getElementById(`g-${k}`).innerHTML = Object.keys(m.prot).map(n => {
+    const f = findProt(n), cant = m.prot[n];
+    const gr = gramosDe(n, cant), pr = protDe(n, cant);
+    const unidad = f ? f[2] : 'g';
+    const est = unidad === 'u'
+      ? `≈ ${Math.round(gr)} g · ${Math.round(pr)} g proteína`
+      : `≈ ${Math.round(pr)} g proteína`;
+    return `<div class="gram-row">
+      <div class="gcol"><div class="gname">${n}</div><div class="gest">${est}</div></div>
+      <input type="number" inputmode="decimal" value="${cant}" onchange="setGram('${k}','${esc(n)}',this.value)">
+      <small>${unidad}</small></div>`;
+  }).join('');
 
   document.getElementById(`c-${k}`).innerHTML = L.carb.map(c =>
     `${ch(c[0], m.carbo === c[0])} onclick="setCarbo('${k}','${esc(c[0])}')">${c[0]}</button>`).join('');
@@ -529,13 +553,17 @@ const findProt = n => PROT.find(p => p[0] === n);
 const findCarb = n => CARB.find(c => c[0] === n);
 const findGras = n => GRAS.find(g => g[0] === n);
 
+// La cantidad se guarda en la unidad natural del alimento; aquí se traduce.
+const gramosDe = (n, cant) => { const f = findProt(n); return f ? cant * f[3] : cant; };
+const protDe   = (n, cant) => { const f = findProt(n); return f ? gramosDe(n, cant) * f[4] / 100 : 0; };
+
 function togProt(k, n){
   const m = S.comidas[k];
   if (m.prot[n] !== undefined) delete m.prot[n];
-  else m.prot[n] = findProt(n)[1];   // gramaje típico del plan
+  else m.prot[n] = findProt(n)[1];   // cantidad típica del plan
   renderComida(k); macros();
 }
-function setGram(k, n, v){ S.comidas[k].prot[n] = parseFloat(v) || 0; macros(); }
+function setGram(k, n, v){ S.comidas[k].prot[n] = parseFloat(v) || 0; renderComida(k); macros(); }
 function setCarbo(k, n){ const m = S.comidas[k]; m.carbo = m.carbo === n ? null : n; renderComida(k); macros(); }
 function togLista(k, campo, v){
   const arr = S.comidas[k][campo];
@@ -560,7 +588,7 @@ function totales(){
   let p=0, c=0, g=0;
   COMIDAS.forEach(({k}) => {
     const m = S.comidas[k];
-    for (const n in m.prot){ const f = findProt(n); if(!f) continue; const q = m.prot[n]/100; p+=f[2]*q; g+=f[3]*q; c+=f[4]*q; }
+    for (const n in m.prot){ const f = findProt(n); if(!f) continue; const q = gramosDe(n, m.prot[n])/100; p+=f[4]*q; g+=f[5]*q; c+=f[6]*q; }
     if (m.carbo){ const f = findCarb(m.carbo); if(f){ const q=f[1]/100; p+=f[2]*q; g+=f[3]*q; c+=f[4]*q; } }
     m.veg.forEach(v => { if (v !== 'Ninguno'){ p+=2; c+=5; } });
     m.gras.forEach(n => { const f = findGras(n); if(f){ const q=f[1]/100; p+=f[2]*q; g+=f[3]*q; c+=f[4]*q; } });
@@ -581,6 +609,23 @@ function macros(){
 }
 
 // ═══ Copiar de ayer ════════════════════════════════════════════════════════════
+// Lee "Huevos 3u · Carne molida 100g" y devuelve la cantidad en la unidad propia
+// de cada alimento. Los registros anteriores a M6 guardaban gramos incluso para
+// alimentos contables, así que si la unidad no coincide se convierte de vuelta.
+function parseDetalle(det){
+  const out = {};
+  (det || '').split('·').forEach(part => {
+    const m = part.trim().match(/^(.+?)\s+(\d+(?:\.\d+)?)\s*(u|g)?$/i);
+    if (!m) return;
+    const nombre = m[1].trim(), val = parseFloat(m[2]), un = (m[3] || 'g').toLowerCase();
+    const f = findProt(nombre);
+    const propia = f ? f[2] : 'g';
+    out[nombre] = (un === propia) ? val
+                : (propia === 'u' && f ? Math.round(val / f[3] * 10) / 10 : val);
+  });
+  return out;
+}
+
 async function cargarAyer(){
   const [y,m,d] = document.getElementById('fecha').value.split('-').map(Number);
   const dt = new Date(y, m-1, d); dt.setDate(dt.getDate()-1);
@@ -595,15 +640,10 @@ function copiarAyer(k){
   if (!AYER) { toast('Sin datos de ayer', 'err'); return; }
   const cap = k.charAt(0).toUpperCase() + k.slice(1);
   const tipos = (AYER[`${cap} proteína tipo`]?.multi_select || []).map(s => s.name);
-  const detalle = AYER[`${cap} detalle`]?.rich_text?.[0]?.plain_text || '';
-  const gramos = {};
-  detalle.split('·').forEach(part => {
-    const mm = part.trim().match(/^(.+?)\s+(\d+(?:\.\d+)?)g$/);
-    if (mm) gramos[mm[1].trim()] = parseFloat(mm[2]);
-  });
+  const cant = parseDetalle(AYER[`${cap} detalle`]?.rich_text?.[0]?.plain_text || '');
   const m = S.comidas[k];
   m.prot = {};
-  tipos.forEach(n => m.prot[n] = gramos[n] ?? (findProt(n)?.[1] || 100));
+  tipos.forEach(n => m.prot[n] = cant[n] ?? (findProt(n)?.[1] || 100));
   m.carbo = AYER[`${cap} carbo`]?.select?.name || null;
   m.veg = (AYER[`${cap} vegetales`]?.multi_select || []).map(s => s.name);
   m.gras = (AYER[`${cap} grasas`]?.multi_select || []).map(s => s.name);
@@ -650,9 +690,8 @@ function poblar(pr){
 
   COMIDAS.forEach(({k}) => {
     const cap = k.charAt(0).toUpperCase()+k.slice(1), m = S.comidas[k];
-    const tipos = mul(`${cap} proteína tipo`), det = txt(`${cap} detalle`), gr = {};
-    det.split('·').forEach(part => { const mm = part.trim().match(/^(.+?)\s+(\d+(?:\.\d+)?)g$/); if (mm) gr[mm[1].trim()] = parseFloat(mm[2]); });
-    m.prot = {}; tipos.forEach(n => m.prot[n] = gr[n] ?? (findProt(n)?.[1] || 100));
+    const tipos = mul(`${cap} proteína tipo`), cant = parseDetalle(txt(`${cap} detalle`));
+    m.prot = {}; tipos.forEach(n => m.prot[n] = cant[n] ?? (findProt(n)?.[1] || 100));
     m.carbo = sel(`${cap} carbo`);
     m.veg = mul(`${cap} vegetales`);
     m.gras = mul(`${cap} grasas`);
@@ -693,13 +732,15 @@ function limpiar(){
 const v = id => { const e = document.getElementById(id); return e && e.value !== '' ? e.value : null; };
 
 function datosComida(k){
-  const m = S.comidas[k], cap = k.charAt(0).toUpperCase()+k.slice(1);
+  const m = S.comidas[k];
   const nombres = Object.keys(m.prot);
-  const total = nombres.reduce((s,n) => s + (m.prot[n]||0), 0);
+  // Notion guarda siempre gramos, para que los 50 registros previos sigan siendo
+  // comparables. El detalle conserva la unidad original (3u vs 165g).
+  const total = nombres.reduce((s,n) => s + gramosDe(n, m.prot[n]||0), 0);
   return {
     [`${k}_proteina_tipo`]: nombres,
-    [`${k}_proteina_g`]: total || null,
-    [`${k}_detalle`]: nombres.map(n => `${n} ${m.prot[n]}g`).join(' · ') || null,
+    [`${k}_proteina_g`]: Math.round(total) || null,
+    [`${k}_detalle`]: nombres.map(n => `${n} ${m.prot[n]}${(findProt(n)||[])[2] || 'g'}`).join(' · ') || null,
     [`${k}_carbo`]: m.carbo,
     [`${k}_vegetales`]: m.veg,
     [`${k}_grasas`]: m.gras,
@@ -766,50 +807,4 @@ function pendientes(){
   const out = [];
   for (let i = 0; i < localStorage.length; i++){
     const k = localStorage.key(i);
-    if (!k || !k.startsWith('registro_')) continue;
-    try { const e = JSON.parse(localStorage.getItem(k)); if (e.status === 'pending') out.push(e); } catch {}
-  }
-  return out;
-}
-
-function purgar(){
-  const corte = Date.now() - 30*24*60*60*1000, del = [];
-  for (let i = 0; i < localStorage.length; i++){
-    const k = localStorage.key(i);
-    if (!k || !k.startsWith('registro_')) continue;
-    try { const e = JSON.parse(localStorage.getItem(k)); if (e.status === 'synced' && e.ts < corte) del.push(k); } catch {}
-  }
-  del.forEach(k => localStorage.removeItem(k));
-}
-
-function badge(){
-  const n = pendientes().length, b = document.getElementById('badge');
-  if (n){ b.textContent = `${n} pendiente${n>1?'s':''}`; b.style.display = 'inline'; } else b.style.display = 'none';
-}
-
-// ═══ Sueño, conexión, toast ════════════════════════════════════════════════════
-document.getElementById('sueno_hora_inicio').addEventListener('change', calcSueno);
-document.getElementById('sueno_hora_fin').addEventListener('change', calcSueno);
-function calcSueno(){
-  const i = v('sueno_hora_inicio'), f = v('sueno_hora_fin');
-  if (!i || !f) return;
-  const [h1,m1] = i.split(':').map(Number), [h2,m2] = f.split(':').map(Number);
-  let mm = (h2*60+m2) - (h1*60+m1); if (mm < 0) mm += 1440;
-  document.getElementById('sueno_duracion').value = (mm/60).toFixed(1);
-}
-
-async function checkConn(){
-  try { const r = await fetch(WORKER, {signal:AbortSignal.timeout(5000)}); const j = await r.json(); setDot(j.status==='ok'?'online':'offline'); }
-  catch { setDot('offline'); }
-}
-function setDot(s){ const d = document.getElementById('dot'); d.className = 'dot'; if (s==='online'||s==='pending') d.classList.add(s); }
-
-let tt;
-function toast(msg, type=''){
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.className = `toast show ${type}`;
-  clearTimeout(tt); tt = setTimeout(() => t.className = 'toast', 2800);
-}
-</script>
-</body>
-</html>
+    if (!k || !k.startsWit
