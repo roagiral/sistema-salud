@@ -204,6 +204,14 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font);min-hei
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.ok{border-color:var(--ok);color:var(--ok-text)}
 .toast.err{border-color:var(--err-text);color:var(--err-text)}
+.a-meta{font-size:11px;color:var(--text3);font-family:var(--mono);margin-bottom:10px}
+.a-esp{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+.a-chip{font-size:10px;font-family:var(--mono);background:var(--bg3);color:var(--text2);border-radius:4px;padding:3px 7px}
+.a-sec{margin-bottom:13px}.a-sec:last-child{margin-bottom:0}
+.a-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:5px}
+.a-txt{font-size:12.5px;line-height:1.65;white-space:pre-wrap;color:var(--text2)}
+.alert-box{background:var(--err-dim);border:1px solid var(--err);border-radius:var(--radius-sm);padding:11px 12px}
+.alert-box .a-lbl{color:var(--err-text)}
 
 /* ══ Fase 2 ══ */
 .hz{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -265,6 +273,7 @@ font-family:var(--mono);font-size:10px;color:#0b0b0b}
   <div class="main-tabs">
     <div class="mtab ah" id="mt-hab" onclick="switchMain('hab')">📊 Hábitos</div>
     <div class="mtab" id="mt-lab" onclick="switchMain('lab')">🔬 Laboratorio</div>
+    <div class="mtab" id="mt-pan" onclick="switchMain('pan')">🩺 Panel</div>
   </div>
   <div class="sub-tabs" id="sub-tabs" style="display:none">
     <div class="stab a" id="st-0" onclick="switchSub(0)">Estado</div>
@@ -393,11 +402,20 @@ font-family:var(--mono);font-size:10px;color:#0b0b0b}
 
   </div>
 
+  <!-- ══ VISTA PANEL ══ -->
+  <div class="view" id="v-pan">
+    <div class="sec">Último análisis</div>
+    <div id="pan-ultimo"></div>
+    <div class="sec">Historial</div>
+    <div id="pan-lista"></div>
+  </div>
+
 </main>
 
 <div class="bnav">
   <div class="nb ah" id="nb-hab" onclick="switchMain('hab')">📊 Hábitos</div>
-  <div class="nb" id="nb-lab" onclick="switchMain('lab')">🔬 Laboratorio</div>
+  <div class="nb" id="nb-lab" onclick="switchMain('lab')">🔬 Lab</div>
+  <div class="nb" id="nb-pan" onclick="switchMain('pan')">🩺 Panel</div>
   <a class="nb sm" href="https://roagiral.github.io/sistema-salud/">← App</a>
 </div>
 <div class="toast" id="toast"></div>
@@ -408,6 +426,7 @@ const WORKER_URL = WORKER;
 let REGISTROS = [];
 let LAB_RESULTS = [];
 let INTERVENCIONES = [];
+let ANALISIS = [];
 let chartsH = {};
 let chartsL = {};
 let currentSub = 0;
@@ -555,7 +574,7 @@ window.addEventListener('load', () => {
   const now = new Date();
   const dias=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
   const meses=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  document.getElementById('hdr-meta').textContent = `${dias[now.getDay()]} ${now.getDate()} ${meses[now.getMonth()]} · Dashboard v2`;
+  document.getElementById('hdr-meta').textContent = `${dias[now.getDay()]} ${now.getDate()} ${meses[now.getMonth()]} · Dashboard v3`;
   syncAll();
 });
 
@@ -563,8 +582,71 @@ window.addEventListener('load', () => {
 async function syncAll() {
   const dot = document.getElementById('sdot');
   dot.className = 'sdot spin';
-  await Promise.all([syncRegistros(), syncLabs(), syncIntervenciones()]);
+  await Promise.all([syncRegistros(), syncLabs(), syncIntervenciones(), syncAnalisis()]);
   dot.className = 'sdot ok';
+}
+
+async function syncAnalisis() {
+  try {
+    const r = await fetch(`${WORKER_URL}/analisis`, {signal:AbortSignal.timeout(8000)});
+    const d = await r.json();
+    if (d.results) {
+      ANALISIS = d.results.map(p => {
+        const pr = p.properties;
+        const t = k => pr[k]?.rich_text?.[0]?.plain_text || '';
+        return {
+          titulo: pr['Análisis']?.title?.[0]?.plain_text || 'Sin título',
+          tipo: pr['Tipo']?.select?.name || '',
+          fecha: pr['Fecha']?.date?.start || '',
+          periodo: t('Período analizado'),
+          cobertura: t('Cobertura de datos'),
+          hallazgos: t('Hallazgos'),
+          adherencia: t('Adherencia'),
+          alertas: t('Alertas'),
+          recomendaciones: t('Recomendaciones'),
+          pasos: t('Próximos pasos'),
+          prioridad: pr['Prioridad']?.select?.name || '',
+          especialistas: pr['Especialistas']?.multi_select?.map(s=>s.name) || [],
+        };
+      });
+      localStorage.setItem('cache_ana', JSON.stringify(ANALISIS));
+    }
+  } catch {
+    const c = localStorage.getItem('cache_ana');
+    if (c) ANALISIS = JSON.parse(c);
+  }
+  renderPanel();
+}
+
+function renderPanel() {
+  const box = document.getElementById('pan-ultimo'), lista = document.getElementById('pan-lista');
+  if (!ANALISIS.length) {
+    box.innerHTML = `<div class="chart-card"><div class="empty"><div class="empty-icon">🩺</div>
+      <div class="empty-text">Aún no hay análisis guardados.<br>Pídele a Claude el cierre del mes o el análisis de un especialista.</div></div></div>`;
+    lista.innerHTML = '';
+    return;
+  }
+  const a = ANALISIS[0];
+  const bloque = (t, c) => c ? `<div class="a-sec"><div class="a-lbl">${t}</div><div class="a-txt">${c}</div></div>` : '';
+  const col = a.prioridad==='Alta' ? 'var(--err-text)' : a.prioridad==='Media' ? 'var(--warn-text)' : 'var(--ok-text)';
+  box.innerHTML = `<div class="chart-card">
+    <div class="cc-hdr"><span class="cc-title">${a.titulo}</span>
+      <span class="cc-badge" style="color:${col};border-color:${col}">${a.tipo||'—'}</span></div>
+    <div class="a-meta">${a.periodo || a.fecha}${a.cobertura ? ' · cobertura ' + a.cobertura : ''}</div>
+    ${a.especialistas.length ? `<div class="a-esp">${a.especialistas.map(e=>`<span class="a-chip">${e}</span>`).join('')}</div>` : ''}
+    ${a.alertas ? `<div class="a-sec alert-box"><div class="a-lbl">Alertas</div><div class="a-txt">${a.alertas}</div></div>` : ''}
+    ${bloque('Hallazgos', a.hallazgos)}
+    ${bloque('Adherencia', a.adherencia)}
+    ${bloque('Recomendaciones', a.recomendaciones)}
+    ${bloque('Próximos pasos', a.pasos)}
+  </div>`;
+
+  lista.innerHTML = ANALISIS.slice(1).map(x => `<div class="iv">
+    <div class="iv-d" style="background:${x.tipo==='Cierre mensual'?'#7F77DD':'#1D9E75'}"></div>
+    <div class="iv-b"><div class="iv-n">${x.titulo}</div>
+      <div class="iv-m">${x.fecha}${x.periodo?' · '+x.periodo:''}</div></div>
+    <div class="iv-s" style="background:#7F77DD22;color:#c4a8ff">${x.tipo}</div>
+  </div>`).join('') || `<div class="note">Sin análisis anteriores.</div>`;
 }
 
 async function syncIntervenciones() {
@@ -714,6 +796,10 @@ function parseReg(p) {
       alcohol_tipo: mul('Alcohol tipo'),
       crossrope: num('Crossrope saltos'),
       zona2: num('Minutos zona 2'),
+      zona3: num('Minutos zona 3'),
+      zona45: (num('Minutos zona 4') || 0) + (num('Minutos zona 5') || 0) || null,
+      te_aer: num('Training Effect aeróbico'),
+      te_ana: num('Training Effect anaeróbico'),
       fc_media: num('FC media'),
       fc_reposo: num('Garmin FC reposo'),
       hrv: num('Garmin HRV nocturna'),
@@ -748,12 +834,12 @@ function parseLab(p) {
 
 // ══ NAVEGACIÓN ════════════════════════════════════════════════════════════════
 function switchMain(v) {
-  document.getElementById('v-hab').classList.toggle('on', v==='hab');
-  document.getElementById('v-lab').classList.toggle('on', v==='lab');
-  document.getElementById('mt-hab').className='mtab'+(v==='hab'?' ah':'');
-  document.getElementById('mt-lab').className='mtab'+(v==='lab'?' al':'');
-  document.getElementById('nb-hab').className='nb'+(v==='hab'?' ah':'');
-  document.getElementById('nb-lab').className='nb'+(v==='lab'?' al':'');
+  ['hab','lab','pan'].forEach(k => {
+    document.getElementById('v-'+k).classList.toggle('on', v===k);
+    const act = v===k ? (k==='hab' ? ' ah' : ' al') : '';
+    document.getElementById('mt-'+k).className = 'mtab' + act;
+    document.getElementById('nb-'+k).className = 'nb' + act;
+  });
   document.getElementById('sub-tabs').style.display = v==='lab' ? 'flex' : 'none';
 }
 
@@ -1211,17 +1297,76 @@ function delta(k, decimales=1, masEsMejor=true){
   return `<span class="dlt ${bueno?'up':'dn'}">${d>0?'+':''}${d.toFixed(decimales)}</span>`;
 }
 
+// ══ ALERTAS SEMANALES ═════════════════════════════════════════════════════════
+// Siempre miran los últimos 7 días, sin importar el horizonte elegido: una
+// alerta es sobre lo que está pasando ahora, no sobre un promedio de 6 meses.
+// Todas son reglas deterministas — aritmética, no interpretación.
 function renderHabAlerts() {
-  const r=rango(); const alerts=[];
-  const s=parseFloat(avg(r,'sueno_h'));
-  if(!isNaN(s)&&s<6) alerts.push({t:'err',m:`Sueño promedio de ${s} h en ${etiquetaHz()}. Con apnea la calidad se ve más afectada.`});
-  const pctAct=r.filter(x=>x.act_min>0).length/r.length;
-  if(pctAct<0.6) alerts.push({t:'warn',m:`Actividad en ${Math.round(pctAct*100)}% de los días. Objetivo: 70%.`});
-  const uds=suma(r,'alcohol_u'), sem=r.length/7;
-  if(sem>=1 && uds/sem>14) alerts.push({t:'warn',m:`${Math.round(uds/sem)} unidades de alcohol por semana en promedio.`});
-  const z2=suma(r,'zona2');
-  if(z2>0 && sem>=1 && z2/sem<90) alerts.push({t:'warn',m:`Zona 2: ${Math.round(z2/sem)} min/semana. El objetivo para mover el HDL son 90–135.`});
-  document.getElementById('alerts-hab').innerHTML=alerts.map(a=>`<div class="alert ${a.t==='warn'?'w':''}"><i>${a.t==='err'?'⚠️':'💡'}</i><div>${a.m}</div></div>`).join('');
+  const r = REGISTROS.slice(-7);
+  const prev = REGISTROS.slice(-14, -7);
+  const A = [];
+  const tiene = (arr,k) => arr.filter(x=>x[k]!=null);
+
+  // 1 · Recuperación en descenso. Es la señal más temprana de carga acumulada.
+  const hrv = tiene(r,'hrv'), hrvPrev = tiene(prev,'hrv');
+  if (hrv.length >= 3) {
+    const ult = hrv.slice(-3).map(x=>x.hrv);
+    const caida = ult[0] ? Math.round((1 - ult[ult.length-1]/ult[0]) * 100) : 0;
+    if (caida >= 20) A.push({t:'err', m:`HRV cayó ${caida}% en las últimas noches (${ult[0]} → ${ult[ult.length-1]} ms). Señal de carga sin recuperación.`});
+    else if (hrvPrev.length >= 3) {
+      const m1 = hrv.reduce((a,b)=>a+b.hrv,0)/hrv.length;
+      const m0 = hrvPrev.reduce((a,b)=>a+b.hrv,0)/hrvPrev.length;
+      if (m0 && m1/m0 < 0.85) A.push({t:'warn', m:`HRV promedio ${Math.round(m1)} ms contra ${Math.round(m0)} la semana pasada, un ${Math.round((1-m1/m0)*100)}% menos.`});
+    }
+  }
+
+  // 2 · Días duros consecutivos. El cuerpo adapta en el descanso, no en la sesión.
+  let racha = 0, maxRacha = 0;
+  r.forEach(x => { if ((x.zona45||0) >= 10) { racha++; maxRacha = Math.max(maxRacha, racha); } else racha = 0; });
+  if (maxRacha >= 3) A.push({t:'err', m:`${maxRacha} días seguidos con más de 10 min en zona 4–5, sin día de recuperación entre medio.`});
+
+  // 3 · Zona 2: la vía con evidencia para mover el HDL.
+  const z2 = suma(r,'zona2');
+  if (tiene(r,'zona2').length >= 3) {
+    if (z2 < 90) A.push({t:'warn', m:`Zona 2 esta semana: ${Math.round(z2)} min. El objetivo para mover el HDL son 90–135.`});
+    else A.push({t:'ok', m:`Zona 2 en ${Math.round(z2)} min esta semana, dentro del objetivo.`});
+  }
+
+  // 4 · Zona gris: mucho costo de recuperación, poco estímulo de base aeróbica.
+  const z3 = suma(r,'zona3'), z45 = suma(r,'zona45');
+  if (z3 > 0 && z3 > z2 + z45) A.push({t:'warn', m:`El volumen se concentró en zona 3 (${Math.round(z3)} min) por encima de zona 2 y de alta intensidad juntas. Es la franja de menor retorno.`});
+
+  // 5 · Sueño.
+  const s = parseFloat(avg(r,'sueno_h'));
+  if (!isNaN(s) && s < 6) A.push({t:'err', m:`Sueño promedio de ${s} h esta semana. Con apnea diagnosticada, la calidad se resiente más que en otros perfiles.`});
+
+  // 6 · Actividad.
+  const act = r.filter(x=>x.act_min>0).length;
+  if (r.length && act/r.length < 0.6) A.push({t:'warn', m:`Actividad en ${act} de ${r.length} días. Objetivo: 70%.`});
+
+  // 7 · Adherencia a suplementos, solo si el campo ya se está usando.
+  const conSup = tiene(r,'suplementos').filter(x=>x.suplementos.length);
+  if (conSup.length >= 3) {
+    const hierro = r.filter(x=>x.suplementos.includes('Hierro (Anemidox)')).length;
+    if (hierro < r.length * 0.7) A.push({t:'warn', m:`Hierro marcado ${hierro} de ${r.length} días. La carga de ferritina depende de constancia, no de dosis.`});
+  }
+
+  // 8 · Cobertura: sin ella, todo lo anterior vale menos.
+  const cob = Math.round(tiene(r,'energia').length / 7 * 100);
+  if (cob < 70) A.push({t:'warn', m:`Solo ${cob}% de los días registrados esta semana. Con menos datos, estas alertas pierden fiabilidad.`});
+
+  // 9 · Alcohol: descriptivo, nunca prescriptivo (regla R1).
+  const uds = suma(r,'alcohol_u'), dias = r.filter(x=>x.alcohol_u>0).length;
+  if (dias) {
+    const sig = r.filter(x=>x.alcohol_u>0).map(diaSiguiente).filter(Boolean).map(x=>x.sueno_q).filter(v=>v!=null);
+    const noc = sig.length ? (sig.reduce((a,b)=>a+b,0)/sig.length).toFixed(1) : null;
+    A.push({t:'info', m:`${uds} unidades en ${dias} día${dias>1?'s':''} esta semana.` + (noc ? ` La calidad de sueño de esas noches promedió ${noc}/5.` : '')});
+  }
+
+  const icono = t => t==='err' ? '⚠️' : t==='ok' ? '✅' : t==='info' ? '📊' : '💡';
+  document.getElementById('alerts-hab').innerHTML = A.length
+    ? `<div class="sec">Esta semana</div>` + A.map(a=>`<div class="alert ${a.t==='err'?'':'w'}"><i>${icono(a.t)}</i><div>${a.m}</div></div>`).join('')
+    : '';
 }
 
 function renderHabKPIs() {
@@ -1285,6 +1430,23 @@ function renderNutri(){
     <div class="kpi kh"><div class="kpi-lbl">Azúcar añadida</div><div class="kpi-val ch">${az}</div><div class="kpi-sub">días en el período</div></div>`;
 }
 
+// ── Alineación temporal ───────────────────────────────────────────────────────
+// Un registro fechado el día D contiene DOS ventanas de tiempo distintas:
+//   · Sueño   → la noche que TERMINÓ la mañana del día D (es decir, de D-1 a D)
+//   · Comida, ejercicio, alcohol, energía, síntomas → el día D
+// Por eso lo que se bebe o se entrena el día D impacta el sueño que aparece
+// en el registro de D+1, no en el propio. Cruzarlos dentro de la misma fila
+// invierte la conclusión.
+//
+// Se busca por fecha calendario, no por posición en el array: con días sin
+// registrar, el "siguiente registro" puede ser dos o tres días después.
+function diaSiguiente(reg){
+  const d = new Date(reg.fecha + 'T12:00:00');
+  d.setDate(d.getDate() + 1);
+  const clave = d.toISOString().slice(0,10);
+  return REGISTROS.find(r => r.fecha === clave) || null;
+}
+
 // ── Alcohol ───────────────────────────────────────────────────────────────────
 function renderAlcohol(){
   const r=rango();
@@ -1304,7 +1466,7 @@ function renderAlcohol(){
   const cubos=[{n:'Sin alcohol',f:v=>v===0},{n:'1–3 uds',f:v=>v>0&&v<=3},{n:'4–8 uds',f:v=>v>3&&v<=8},{n:'Más de 8',f:v=>v>8}];
   const filas=cubos.map(c=>{
     const dias=r.filter(x=>c.f(x.alcohol_u||0));
-    const sig=dias.map(x=>{const i=REGISTROS.indexOf(x);return REGISTROS[i+1];}).filter(Boolean);
+    const sig=dias.map(x=>diaSiguiente(x)).filter(Boolean);
     const q=sig.map(x=>x.sueno_q).filter(v=>v!=null);
     const e=sig.map(x=>x.energia).filter(v=>v!=null);
     return {n:c.n,dias:dias.length,
@@ -1318,7 +1480,7 @@ function renderAlcohol(){
     return `<div class="dr"><div class="dr-n">${f.n}</div>
       <div class="dr-t"><div class="dr-f" style="width:${Math.max(pct,18)}%;background:${col}">${f.q?f.q.toFixed(1)+'/5':'—'}</div></div>
       <div class="dr-c">${f.dias}d</div></div>`;
-  }).join('') + `<div class="note">Calidad de sueño de la noche siguiente, según las unidades del día. El número de la derecha es cuántos días entran en cada grupo.</div>`
+  }).join('') + `<div class="note">Calidad del sueño de la noche siguiente, según las unidades bebidas ese día. Se empareja por fecha calendario, no por registro consecutivo. El número de la derecha es cuántos días sustentan cada tramo.</div>`
     : `<div class="note">Sin datos suficientes en este período.</div>`;
 }
 
