@@ -300,11 +300,14 @@ opacity:0;transition:all .3s;pointer-events:none;z-index:200;white-space:nowrap}
       <div class="coll" id="azucar-detail"><div class="field"><input type="text" id="azucar_detalle" placeholder="¿Qué fue?"></div></div>
       <div class="trow">
         <div class="tw"><input type="checkbox" id="alcohol" onchange="tAlcohol(this.checked)"><div class="tt alc"></div><div class="th alc"></div></div>
-        <div><div class="tl">Alcohol</div><div class="tsub">Registrar tipo y unidades</div></div>
+        <div><div class="tl">Alcohol</div><div class="tsub">Registrar tipo y bebidas</div></div>
       </div>
       <div class="coll" id="alcohol-detail">
         <div class="field"><div class="flabel">Tipo</div><div class="chips" id="alcohol_tipo"></div></div>
-        <div class="field"><div class="flabel">Unidades</div><input type="number" id="alcohol_unidades" placeholder="0" inputmode="numeric"></div>
+        <!-- La propiedad de Notion se sigue llamando "Alcohol unidades" por
+             compatibilidad con los 56 registros ya guardados. Lo que cuenta son
+             BEBIDAS SERVIDAS (cervezas, tragos), no unidades estándar de alcohol. -->
+        <div class="field"><div class="flabel">Bebidas servidas</div><input type="number" id="alcohol_unidades" placeholder="0" inputmode="numeric"></div>
       </div>
     </div>
   </div>
@@ -455,7 +458,11 @@ function pintarEstaticos(){
   chips('alcohol_tipo',['Cerveza','Vino','Aguardiente','Gin tonic','Whisky','Otro'],'c-energy','multi');
   chips('suplementos',['Hierro (Anemidox)','Magnesio','Creatina','Omega-3','Vitamina C','Otro'],'c-food','multi');
   chips('animo',['Muy bien','Bien','Neutral','Mal'],'c-energy','single');
-  chips('sintomas',['Ninguno','Fatiga','Dolor de cabeza','Ansiedad','Dolor muscular','Náuseas','Otro'],'c-energy','sintomas');
+  // "Reflujo" se agregó el 31 jul 2026. Sin esa opción, el campo no podía
+  // registrar el único síntoma que el sistema está tratando de correlacionar
+  // con gluten y azúcar: el cierre de julio dio cero episodios y ese cero no
+  // era interpretable, porque el instrumento no podía capturar el evento.
+  chips('sintomas',['Ninguno','Fatiga','Dolor de cabeza','Reflujo','Ansiedad','Dolor muscular','Náuseas','Otro'],'c-energy','sintomas');
   document.getElementById('durbtns').innerHTML =
     [20,30,40,50,60].map(m=>`<button class="dbtn" onclick="setDur(${m})">${m===60?"60+'":m+"'"}</button>`).join('');
 }
