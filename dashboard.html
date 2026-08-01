@@ -588,7 +588,10 @@ async function syncAll() {
 
 async function syncAnalisis() {
   try {
-    const r = await fetch(`${WORKER_URL}/analisis`, {signal:AbortSignal.timeout(8000)});
+    // ?crudo=1 — desde el Worker v3.7, /analisis devuelve los datos aplanados
+    // por defecto (para que el panel quepa en una lectura). Este dashboard
+    // parsea el formato original de Notion, así que pide ese.
+    const r = await fetch(`${WORKER_URL}/analisis?crudo=1`, {signal:AbortSignal.timeout(8000)});
     const d = await r.json();
     if (d.results) {
       ANALISIS = d.results.map(p => {
@@ -697,7 +700,8 @@ async function syncLabs() {
     while (hasMore) {
       const body = {sorts:[{property:"Fecha examen",direction:"ascending"},{property:"Nombre",direction:"ascending"}],page_size:100};
       if (cursor) body.start_cursor = cursor;
-      const r = await fetch(`${WORKER_URL}/labs`, {signal:AbortSignal.timeout(10000)});
+      // ?crudo=1 — ver la nota en syncAnalisis: el Worker v3.7 aplana por defecto.
+      const r = await fetch(`${WORKER_URL}/labs?crudo=1`, {signal:AbortSignal.timeout(10000)});
       const d = await r.json();
       if (d.results) allResults.push(...d.results);
       hasMore = d.has_more || false;
@@ -1338,7 +1342,11 @@ function renderHabAlerts() {
 
   // 5 · Sueño.
   const s = parseFloat(avg(r,'sueno_h'));
-  if (!isNaN(s) && s < 6) A.push({t:'err', m:`Sueño promedio de ${s} h esta semana. Con apnea diagnosticada, la calidad se resiente más que en otros perfiles.`});
+  // El texto anterior decía "con apnea diagnosticada la calidad se resiente más".
+  // El informe de CPAP (mar-abr 2026) da un AHI de 0.6: la apnea está controlada,
+  // no residual. Con la máquina puesta no explica el sueño corto. Lo que sí lo
+  // explica son las horas en cama, el alcohol y los horarios.
+  if (!isNaN(s) && s < 6) A.push({t:'err', m:`Sueño promedio de ${s} h esta semana. Con el CPAP la apnea está controlada (AHI 0.6), así que esto son horas en cama, no eventos respiratorios.`});
 
   // 6 · Actividad.
   const act = r.filter(x=>x.act_min>0).length;
