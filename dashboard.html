@@ -781,12 +781,24 @@ function parseReg(p) {
       if (partes.length) { prot = Math.round(partes.reduce((a,b)=>a+b,0)); protEst = true; }
     }
 
-    // Carbohidratos: el esquema nuevo usa un select por comida; el viejo,
-    // multi-selects con otros nombres. Se unifican para poder medir gluten.
-    const carbos = [sel('Desayuno carbo'), sel('Almuerzo carbo'), sel('Cena carbo'), sel('Snack carbo')]
-      .filter(Boolean)
-      .concat(mul('Desayuno carbs'), mul('Almuerzo base'), mul('Cena acompañantes'));
-    const conGluten = carbos.some(c => /^(arepa|pan de masa madre|galletas saltinas)$/i.test(c));
+    // Carbohidratos: desde el 3 ago 2026 los cuatro campos del esquema nuevo son
+    // MULTI-SELECT (antes solo cabía uno por comida, y eso dejó 15 de 29 días de
+    // julio marcados como "Otro"). Se lee multi_select y se cae a select para los
+    // registros anteriores, que siguen siendo válidos. El esquema viejo usa
+    // multi-selects con otros nombres. Todo se unifica para poder medir gluten.
+    const carboComida = k => { const m = mul(k); return m.length ? m : (sel(k) ? [sel(k)] : []); };
+    const carbos = [
+      ...carboComida('Desayuno carbo'), ...carboComida('Almuerzo carbo'),
+      ...carboComida('Cena carbo'),     ...carboComida('Snack carbo'),
+      ...mul('Desayuno carbs'), ...mul('Almuerzo base'), ...mul('Cena acompañantes'),
+    ].filter(Boolean);
+
+    // La cerveza es cebada y cuenta igual que un pan. El dashboard la omitía,
+    // así que su conteo de "días con gluten" venía quedando por debajo del que
+    // calcula el panel. Corregido el 3 ago 2026 para que las dos cifras coincidan.
+    const conGluten =
+      carbos.some(c => /^(arepa|pan de masa madre|galletas saltinas)$/i.test(c)) ||
+      mul('Alcohol tipo').some(t => /^cerveza$/i.test(t));
 
     return {
       fecha: pr['Fecha']?.title?.[0]?.text?.content||'',
@@ -814,6 +826,7 @@ function parseReg(p) {
       body_battery: num('Garmin Body Battery despertar'),
       suplementos: mul('Suplementos tomados'),
       cheatmeal: pr['Cheatmeal']?.checkbox||false,
+      cafe_am: pr['Café solo antes del mediodía']?.checkbox||false,
       azucar: pr['Azúcar añadida']?.checkbox||false,
       alim_calidad: sel('Alimentación calidad'),
       bloque: sel('Bloque plan'),
@@ -1435,7 +1448,7 @@ function renderNutri(){
   const gl=r.filter(x=>x.gluten).length, ch=r.filter(x=>x.cheatmeal).length, az=r.filter(x=>x.azucar).length;
   const kcal=r.filter(x=>x.kcal!=null);
   document.getElementById('nutri-kpis').innerHTML=`
-    <div class="kpi ${gl/r.length<0.3?'kh':'kw'}"><div class="kpi-lbl">Días con gluten</div><div class="kpi-val ${gl/r.length<0.3?'ch':'cw'}">${gl}</div><div class="kpi-sub">de ${r.length} · arepa, pan, saltinas</div></div>
+    <div class="kpi ${gl/r.length<0.3?'kh':'kw'}"><div class="kpi-lbl">Días con gluten</div><div class="kpi-val ${gl/r.length<0.3?'ch':'cw'}">${gl}</div><div class="kpi-sub">de ${r.length} · arepa, pan, saltinas, cerveza</div></div>
     <div class="kpi kh"><div class="kpi-lbl">Kcal estimadas</div><div class="kpi-val ch">${kcal.length?Math.round(kcal.reduce((a,b)=>a+b.kcal,0)/kcal.length):'—'}</div><div class="kpi-sub">${kcal.length?'promedio/día':'desde 26 jul'}</div></div>
     <div class="kpi kh"><div class="kpi-lbl">Cheatmeal</div><div class="kpi-val ch">${ch}</div><div class="kpi-sub">días en el período</div></div>
     <div class="kpi kh"><div class="kpi-lbl">Azúcar añadida</div><div class="kpi-val ch">${az}</div><div class="kpi-sub">días en el período</div></div>`;
