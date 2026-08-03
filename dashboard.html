@@ -808,6 +808,10 @@ function parseReg(p) {
       animo: am[sel('Ánimo')]||null,
       act_min: num('Actividad duración min'),
       act_tipo: mul('Actividad tipo'),
+      // Existe desde el 3 ago 2026. En registros anteriores vale false por
+      // defecto y NO significa "descansó": significa que el campo no existía.
+      // Por eso se guarda junto a la fecha y se interpreta solo a partir de ahí.
+      hizo_ejercicio: pr['Hice ejercicio']?.checkbox ?? null,
       sintomas: mul('Síntomas'),
       alcohol: pr['Alcohol']?.checkbox||false,
       // ── Campos que el dashboard ignoraba ──
