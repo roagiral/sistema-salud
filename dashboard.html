@@ -321,7 +321,9 @@ font-family:var(--mono);font-size:10px;color:#0b0b0b}
 
     <div class="sec">Alcohol</div>
     <div class="chart-card">
-      <div class="cc-hdr"><span class="cc-title">Unidades por día</span><span class="cc-badge" id="bd-alc"></span></div>
+      <!-- "Bebidas", no "Unidades": el campo cuenta bebidas servidas (1 cerveza
+           de 330 ml, o un trago de ~30 ml), no unidades estándar de alcohol. -->
+      <div class="cc-hdr"><span class="cc-title">Bebidas por día</span><span class="cc-badge" id="bd-alc"></span></div>
       <div class="chart-wrap"><canvas id="ch-alc"></canvas></div>
     </div>
     <div class="chart-card">
@@ -654,7 +656,8 @@ function renderPanel() {
 
 async function syncIntervenciones() {
   try {
-    const r = await fetch(`${WORKER_URL}/intervenciones`, {signal:AbortSignal.timeout(8000)});
+    // ?crudo=1 — ver la nota en syncAnalisis: el Worker v3.7 aplana por defecto.
+    const r = await fetch(`${WORKER_URL}/intervenciones?crudo=1`, {signal:AbortSignal.timeout(8000)});
     const d = await r.json();
     if (d.results) {
       INTERVENCIONES = d.results.map(p => {
