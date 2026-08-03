@@ -777,7 +777,9 @@ function poblar(pr){
   const az = chk('Azúcar añadida'); document.getElementById('azucar').checked = az; tAzucar(az);
   document.getElementById('cheatmeal').checked = chk('Cheatmeal');
   document.getElementById('cafe_am').checked = chk('Café solo antes del mediodía');
-  const hizo = mul('Actividad tipo').length > 0;
+  // Manda la casilla guardada. Solo se infiere de "Actividad tipo" en los
+  // registros anteriores al 3 ago 2026, cuando la casilla no se persistía.
+  const hizo = pr['Hice ejercicio'] ? chk('Hice ejercicio') : mul('Actividad tipo').length > 0;
   document.getElementById('hice_ejercicio').checked = hizo; tEjercicio(hizo);
 }
 
@@ -834,6 +836,12 @@ function collect(){
     bloque_plan: S.bloque_plan, alimentacion_calidad: S.alimentacion_calidad,
     cheatmeal: document.getElementById('cheatmeal').checked,
     cafe_am: document.getElementById('cafe_am').checked,
+    // Se persiste desde el 3 ago 2026. Antes este toggle solo mostraba u
+    // ocultaba el panel de detalle y nunca llegaba a Notion, así que un día de
+    // descanso y un día sin registrar se veían idénticos: ambos con Actividad
+    // tipo vacío. El panel tenía prohibido escribir "no entrenó" por eso.
+    // Ahora: campo ausente = no registrado · false = descansó · true = entrenó.
+    hice_ejercicio: document.getElementById('hice_ejercicio').checked,
     azucar: document.getElementById('azucar').checked, azucar_detalle: v('azucar_detalle'),
     suplementos: S.suplementos,
     alcohol: document.getElementById('alcohol').checked, alcohol_tipo: S.alcohol_tipo, alcohol_unidades: v('alcohol_unidades'),
