@@ -293,6 +293,13 @@ opacity:0;transition:all .3s;pointer-events:none;z-index:200;white-space:nowrap}
         <div class="tw"><input type="checkbox" id="cheatmeal"><div class="tt"></div><div class="th"></div></div>
         <div><div class="tl">Cheatmeal</div><div class="tsub">Antojo deliberado</div></div>
       </div>
+      <!-- Graduado a casilla el 3 ago 2026. El hábito llevaba sostenido desde el
+           5 de junio y solo se podía verificar leyendo texto libre. El volumen
+           es estable (300-400 ml), así que no lleva campo numérico. -->
+      <div class="trow">
+        <div class="tw"><input type="checkbox" id="cafe_am"><div class="tt"></div><div class="th"></div></div>
+        <div><div class="tl">Café solo antes del mediodía</div><div class="tsub">Todo el café del día antes de las 12:00</div></div>
+      </div>
       <div class="trow">
         <div class="tw"><input type="checkbox" id="azucar" onchange="tAzucar(this.checked)"><div class="tt"></div><div class="th"></div></div>
         <div><div class="tl">Azúcar añadida</div><div class="tsub">Postre, gaseosa, dulce</div></div>
@@ -404,9 +411,11 @@ const S = {
   alimentacion_calidad:null, alcohol_tipo:[], suplementos:[],
   actividad_tipo:[], actividad_sensacion:null,
   energia_nivel:null, animo:null, sintomas:[],
-  comidas: {},   // { desayuno:{prot:{nombre:gramos}, carbo:null, veg:[], gras:[]}, … }
+  comidas: {},   // { desayuno:{prot:{nombre:gramos}, carbos:[], veg:[], gras:[]}, … }
 };
-COMIDAS.forEach(c => S.comidas[c.k] = {prot:{}, carbo:null, veg:[], gras:[]});
+// `carbos` es un ARRAY desde el 3 ago 2026. Antes era un solo valor y eso dejaba
+// 15 de 29 días de julio con carbohidrato "Otro" porque no cabía más de uno.
+COMIDAS.forEach(c => S.comidas[c.k] = {prot:{}, carbos:[], veg:[], gras:[]});
 
 let AYER = null;   // registro del día anterior, para "copiar"
 
@@ -590,7 +599,7 @@ function renderComida(k){
   }).join('');
 
   document.getElementById(`c-${k}`).innerHTML = L.carb.map(c =>
-    `${ch(c[0], m.carbo === c[0])} onclick="setCarbo('${k}','${esc(c[0])}')">${c[0]}</button>`).join('');
+    `${ch(c[0], m.carbos.includes(c[0]))} onclick="setCarbo('${k}','${esc(c[0])}')">${c[0]}</button>`).join('');
 
   const lv = document.getElementById(`lv-${k}`), vd = document.getElementById(`v-${k}`);
   if (!L.veg.length) { lv.style.display='none'; vd.style.display='none'; }
@@ -619,7 +628,16 @@ function togProt(k, n){
   renderComida(k); macros();
 }
 function setGram(k, n, v){ S.comidas[k].prot[n] = parseFloat(v) || 0; renderComida(k); macros(); }
-function setCarbo(k, n){ const m = S.comidas[k]; m.carbo = m.carbo === n ? null : n; renderComida(k); macros(); }
+// Multi-selección desde el 3 ago 2026. "Sin carbo" es excluyente: marcarlo
+// limpia el resto, y marcar cualquier otro lo quita. Misma lógica que "Ninguno"
+// en síntomas.
+function setCarbo(k, n){
+  const m = S.comidas[k];
+  if (m.carbos.includes(n)) { m.carbos = m.carbos.filter(x => x !== n); }
+  else if (n === 'Sin carbo')  { m.carbos = ['Sin carbo']; }
+  else { m.carbos = [...m.carbos.filter(x => x !== 'Sin carbo'), n]; }
+  renderComida(k); macros();
+}
 function togLista(k, campo, v){
   const arr = S.comidas[k][campo];
   S.comidas[k][campo] = arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v];
@@ -644,7 +662,7 @@ function totales(){
   COMIDAS.forEach(({k}) => {
     const m = S.comidas[k];
     for (const n in m.prot){ const f = findProt(n); if(!f) continue; const q = gramosDe(n, m.prot[n])/100; p+=f[4]*q; g+=f[5]*q; c+=f[6]*q; }
-    if (m.carbo){ const f = findCarb(m.carbo); if(f){ const q=f[1]/100; p+=f[2]*q; g+=f[3]*q; c+=f[4]*q; } }
+    m.carbos.forEach(n => { const f = findCarb(n); if(f){ const q=f[1]/100; p+=f[2]*q; g+=f[3]*q; c+=f[4]*q; } });
     m.veg.forEach(v => { if (v !== 'Ninguno'){ p+=2; c+=5; } });
     m.gras.forEach(n => { const f = findGras(n); if(f){ const q=f[1]/100; p+=f[2]*q; g+=f[3]*q; c+=f[4]*q; } });
   });
@@ -699,7 +717,7 @@ function copiarAyer(k){
   const m = S.comidas[k];
   m.prot = {};
   tipos.forEach(n => m.prot[n] = cant[n] ?? (findProt(n)?.[1] || 100));
-  m.carbo = AYER[`${cap} carbo`]?.select?.name || null;
+  m.carbos = (AYER[`${cap} carbo`]?.multi_select || []).map(s => s.name);
   m.veg = (AYER[`${cap} vegetales`]?.multi_select || []).map(s => s.name);
   m.gras = (AYER[`${cap} grasas`]?.multi_select || []).map(s => s.name);
   renderComida(k); macros();
@@ -749,7 +767,7 @@ function poblar(pr){
     const cap = k.charAt(0).toUpperCase()+k.slice(1), m = S.comidas[k];
     const tipos = mul(`${cap} proteína tipo`), cant = parseDetalle(txt(`${cap} detalle`));
     m.prot = {}; tipos.forEach(n => m.prot[n] = cant[n] ?? (findProt(n)?.[1] || 100));
-    m.carbo = sel(`${cap} carbo`);
+    m.carbos = mul(`${cap} carbo`);
     m.veg = mul(`${cap} vegetales`);
     m.gras = mul(`${cap} grasas`);
     renderComida(k);
@@ -758,6 +776,7 @@ function poblar(pr){
   const alc = chk('Alcohol'); document.getElementById('alcohol').checked = alc; tAlcohol(alc);
   const az = chk('Azúcar añadida'); document.getElementById('azucar').checked = az; tAzucar(az);
   document.getElementById('cheatmeal').checked = chk('Cheatmeal');
+  document.getElementById('cafe_am').checked = chk('Café solo antes del mediodía');
   const hizo = mul('Actividad tipo').length > 0;
   document.getElementById('hice_ejercicio').checked = hizo; tEjercicio(hizo);
 }
@@ -778,10 +797,10 @@ function limpiar(){
   Object.assign(S, {sueno_calidad:null,sueno_descripcion:null,bloque_plan:null,bloqueManual:false,
     alimentacion_calidad:null,alcohol_tipo:[],suplementos:[],actividad_tipo:[],actividad_sensacion:null,
     energia_nivel:null,animo:null,sintomas:[]});
-  COMIDAS.forEach(c => { S.comidas[c.k] = {prot:{},carbo:null,veg:[],gras:[]}; renderComida(c.k); });
+  COMIDAS.forEach(c => { S.comidas[c.k] = {prot:{},carbos:[],veg:[],gras:[]}; renderComida(c.k); });
   document.querySelectorAll('.chip.active,.sbtn.active,.dbtn.active').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('input[type=text],input[type=number],input[type=time],textarea').forEach(i => i.value = '');
-  ['alcohol','azucar','cheatmeal','hice_ejercicio'].forEach(id => document.getElementById(id).checked = false);
+  ['alcohol','azucar','cheatmeal','cafe_am','hice_ejercicio'].forEach(id => document.getElementById(id).checked = false);
   ['alcohol-detail','azucar-detail','ejercicio-detail'].forEach(id => document.getElementById(id).classList.remove('open'));
 }
 
@@ -798,7 +817,7 @@ function datosComida(k){
     [`${k}_proteina_tipo`]: nombres,
     [`${k}_proteina_g`]: Math.round(total) || null,
     [`${k}_detalle`]: nombres.map(n => `${n} ${m.prot[n]}${(findProt(n)||[])[2] || 'g'}`).join(' · ') || null,
-    [`${k}_carbo`]: m.carbo,
+    [`${k}_carbo`]: m.carbos,
     [`${k}_vegetales`]: m.veg,
     [`${k}_grasas`]: m.gras,
   };
@@ -814,6 +833,7 @@ function collect(){
     garmin_hrv: v('garmin_hrv'), garmin_fc_reposo: v('garmin_fc_reposo'),
     bloque_plan: S.bloque_plan, alimentacion_calidad: S.alimentacion_calidad,
     cheatmeal: document.getElementById('cheatmeal').checked,
+    cafe_am: document.getElementById('cafe_am').checked,
     azucar: document.getElementById('azucar').checked, azucar_detalle: v('azucar_detalle'),
     suplementos: S.suplementos,
     alcohol: document.getElementById('alcohol').checked, alcohol_tipo: S.alcohol_tipo, alcohol_unidades: v('alcohol_unidades'),
